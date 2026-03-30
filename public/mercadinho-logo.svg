@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 300">
+  <rect width="280" height="300" fill="#ffffff"/>
+  <path d="M32 95 Q140 28 248 95 L248 278 L32 278 Z" fill="none" stroke="#1a1a1a" stroke-width="2.5"/>
+  <text x="140" y="52" text-anchor="middle" fill="#2e7d32" font-family="system-ui,Segoe UI,sans-serif" font-size="14" font-weight="800" letter-spacing="0.12em">MERCADINHO</text>
+  <circle cx="140" cy="158" r="56" fill="#fff176" stroke="#1a1a1a" stroke-width="2"/>
+  <circle cx="92" cy="162" r="20" fill="#e53935" stroke="#1a1a1a" stroke-width="2"/>
+  <path d="M92 145 q4-8 8-4" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/>
+  <rect x="124" y="128" width="32" height="44" rx="3" fill="#43a047" stroke="#1a1a1a" stroke-width="2"/>
+  <path d="M124 128 L140 108 L156 128 M132 120 L148 120" fill="none" stroke="#1b5e20" stroke-width="2" stroke-linecap="round"/>
+  <line x1="128" y1="136" x2="152" y2="152" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="128" y1="148" x2="152" y2="164" stroke="#1a1a1a" stroke-width="1"/>
+  <circle cx="188" cy="162" r="20" fill="#fb8c00" stroke="#1a1a1a" stroke-width="2"/>
+  <path d="M188 145 q4-8 8-4" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/>
+  <rect x="44" y="228" width="192" height="48" fill="#ffffff" stroke="#1a1a1a" stroke-width="2" rx="2"/>
+  <text x="140" y="258" text-anchor="middle" fill="#2e7d32" font-family="system-ui,Segoe UI,sans-serif" font-size="16" font-weight="800">Esta??o das Frutas</text>
+</svg>

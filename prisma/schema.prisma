@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   // ADMIN | ATTENDANT
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id           String           @id @default(uuid())
+  name         String
+  description  String?
+  imageUrl     String?
+  complements  String?
+  category     String
+  unit         String
+  price        Float
+  cost         Float
+  stock        Float
+  minStock     Float
+  active       Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+
+  orderItems   OrderItem[]
+  stockMovements StockMovement[]
+}
+
+model ProductCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  cpfCnpj   String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  orders    Order[]
+}
+
+model Order {
+  id             String   @id @default(uuid())
+  customerId     String?
+  customerUserId String?
+  total          Float
+  status         String   // OPEN | FINISHED | CANCELED
+  paymentMethod  String?
+  paymentCategory String  @default("NORMAL") // NORMAL | FIADO
+  paymentStatus  String   @default("PAID") // PENDING | PAID
+  paidAt         DateTime?
+  orderType      String   @default("PICKUP") // DELIVERY | PICKUP
+  customerPhoneSnapshot String?
+  deliveryAddress String?
+  createdAt      DateTime @default(now())
+
+  items    OrderItem[]
+  customer Customer?      @relation(fields: [customerId], references: [id])
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Float
+  price     Float
+  notes     String?
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model StockMovement {
+  id        String   @id @default(uuid())
+  productId String
+  type      String   // SALE | ENTRY | ADJUSTMENT
+  quantity  Float
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  description String
+  category    String?
+  amount      Float
+  date        DateTime
+  createdAt   DateTime @default(now())
+}
