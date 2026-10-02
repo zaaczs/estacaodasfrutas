@@ -72,5 +72,5 @@ export async function sumExpensesByPeriod(dateFrom: Date, dateTo: Date) {
     where: { date: { gte: dateFrom, lte: dateTo } },
     _sum: { amount: true },
   });
-  return result._sum.amount ?? 0;
+  return result._sum?.amount ?? 0;
 }
