@@ -79,8 +79,8 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
   const pageItems = getPageItems(currentPage, totalPages);
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Produtos</h1>
           <p className="text-muted-foreground">

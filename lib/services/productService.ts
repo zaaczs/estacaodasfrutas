@@ -1,10 +1,9 @@
 import { prisma } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { Prisma, type Product } from "@prisma/client";
 import {
   ensureCategoryExists,
   getActiveCategoryOptionsForStorefront,
   getInactiveCategoryNames,
-  listProductCategories,
 } from "./productCategoryService";
 
 export type CreateProductInput = {
@@ -102,14 +101,11 @@ export async function getProductCategories(options?: {
     orderBy: { category: "asc" },
   });
 
-  if (options?.activeOnly === false) {
-    const managed = await listProductCategories();
-    const merged = new Set<string>(managed.map((c) => c.name));
-    for (const row of rows) merged.add(row.category);
-    return Array.from(merged).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }
-
-  return rows.map((r) => r.category);
+  // Só categorias que realmente existem em produtos (evita filtros vazios)
+  return rows
+    .map((r) => r.category)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
 
 export async function countActiveProducts(whereExtra?: Prisma.ProductWhereInput) {
@@ -146,9 +142,29 @@ export async function updateProduct(id: string, data: UpdateProductInput) {
   });
 }
 
-export async function deleteProduct(id: string) {
-  return prisma.product.delete({
-    where: { id },
+export type DeleteProductResult =
+  | { mode: "deleted" }
+  | { mode: "inactivated"; product: Product };
+
+/**
+ * Exclui o produto se nunca tiver entrado em pedidos.
+ * Caso existam itens de pedido (histórico), apenas inativa — pedidos antigos
+ * precisam manter a referência ao registro.
+ */
+export async function deleteProduct(id: string): Promise<DeleteProductResult> {
+  return prisma.$transaction(async (tx) => {
+    const orderItemCount = await tx.orderItem.count({ where: { productId: id } });
+    if (orderItemCount > 0) {
+      const product = await tx.product.update({
+        where: { id },
+        data: { active: false },
+      });
+      return { mode: "inactivated" as const, product };
+    }
+
+    await tx.stockMovement.deleteMany({ where: { productId: id } });
+    await tx.product.delete({ where: { id } });
+    return { mode: "deleted" as const };
   });
 }
 

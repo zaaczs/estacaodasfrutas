@@ -11,9 +11,12 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -38,6 +41,11 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
   const [products, setProducts] = useState(initialProducts);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+  const [categoryTransferProduct, setCategoryTransferProduct] = useState<Product | null>(
+    null
+  );
+  const [categoryDraft, setCategoryDraft] = useState("");
+  const [categorySaveLoading, setCategorySaveLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [quickActionId, setQuickActionId] = useState<string | null>(null);
 
@@ -49,8 +57,23 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
     setLoading(true);
     try {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(await res.text());
-      setProducts((p) => p.filter((x) => x.id !== id));
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        inactivated?: boolean;
+        message?: string;
+        product?: Product;
+      };
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Erro ao excluir"
+        );
+      }
+      if (data.inactivated && data.product) {
+        handleProductSaved(data.product);
+        if (data.message) alert(data.message);
+      } else {
+        setProducts((p) => p.filter((x) => x.id !== id));
+      }
       setDeleteProduct(null);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao excluir");
@@ -100,29 +123,32 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
     }
   }
 
-  async function handleQuickCategoryChange(product: Product) {
-    const suggestions = categories.slice(0, 8).join(", ");
-    const nextCategoryRaw = window.prompt(
-      suggestions
-        ? `Nova categoria para "${product.name}"\nSugestões: ${suggestions}`
-        : `Nova categoria para "${product.name}"`,
-      product.category
-    );
-    if (nextCategoryRaw == null) return;
-    const nextCategory = nextCategoryRaw.trim();
-    if (!nextCategory) {
-      alert("Informe uma categoria válida.");
+  function openCategoryTransferDialog(product: Product) {
+    setCategoryTransferProduct(product);
+    setCategoryDraft(product.category);
+  }
+
+  async function confirmCategoryTransfer() {
+    if (!categoryTransferProduct) return;
+    const next = categoryDraft.trim();
+    if (!next) return;
+    if (next === categoryTransferProduct.category) {
+      setCategoryTransferProduct(null);
       return;
     }
-    if (nextCategory === product.category) return;
 
-    setQuickActionId(product.id);
+    setCategorySaveLoading(true);
+    setQuickActionId(categoryTransferProduct.id);
     try {
-      const saved = await patchProduct(product.id, { category: nextCategory });
+      const saved = await patchProduct(categoryTransferProduct.id, {
+        category: next,
+      });
       handleProductSaved(saved);
+      setCategoryTransferProduct(null);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao trocar categoria");
     } finally {
+      setCategorySaveLoading(false);
       setQuickActionId(null);
     }
   }
@@ -194,7 +220,7 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleQuickCategoryChange(product)}
+                      onClick={() => openCategoryTransferDialog(product)}
                       title="Trocar categoria"
                       disabled={quickActionId === product.id}
                     >
@@ -251,6 +277,122 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
         onSaved={handleProductSaved}
       />
 
+      <Dialog
+        open={!!categoryTransferProduct}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCategoryTransferProduct(null);
+            setCategorySaveLoading(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <ArrowLeftRight className="h-4 w-4" />
+              </span>
+              Trocar categoria
+            </DialogTitle>
+            <DialogDescription className="text-left text-base leading-relaxed">
+              Escolha um atalho abaixo ou digite o nome. O produto{" "}
+              <span className="font-medium text-foreground">
+                {categoryTransferProduct?.name}
+              </span>{" "}
+              está em{" "}
+              <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-sm font-medium text-foreground">
+                {categoryTransferProduct?.category}
+              </span>
+              .
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4 pt-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void confirmCategoryTransfer();
+            }}
+          >
+            {categories.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Atalhos
+                </span>
+                <div className="max-h-28 overflow-y-auto rounded-md border bg-muted/30 p-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {categories
+                      .slice()
+                      .sort((a, b) => a.localeCompare(b, "pt-BR"))
+                      .map((c) => {
+                        const isCurrent = c === categoryTransferProduct?.category;
+                        const isSelected = c === categoryDraft.trim();
+                        return (
+                          <Button
+                            key={c}
+                            type="button"
+                            size="sm"
+                            variant={isSelected ? "default" : "outline"}
+                            className="h-8 text-xs font-normal"
+                            disabled={isCurrent}
+                            onClick={() => setCategoryDraft(c)}
+                            title={isCurrent ? "Categoria atual" : `Usar ${c}`}
+                          >
+                            {c}
+                            {isCurrent && (
+                              <span className="ml-1 text-[10px] opacity-80">(atual)</span>
+                            )}
+                          </Button>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="product-category-transfer">Nova categoria</Label>
+              <Input
+                id="product-category-transfer"
+                value={categoryDraft}
+                onChange={(e) => setCategoryDraft(e.target.value)}
+                placeholder="Ex.: Frutas, Bebidas…"
+                autoComplete="off"
+                disabled={categorySaveLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Você pode selecionar um atalho acima ou digitar um nome que ainda não exista.
+              </p>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCategoryTransferProduct(null)}
+                disabled={categorySaveLoading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  categorySaveLoading ||
+                  !categoryDraft.trim() ||
+                  categoryDraft.trim() === categoryTransferProduct?.category
+                }
+              >
+                {categorySaveLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando…
+                  </>
+                ) : (
+                  "Salvar"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!deleteProduct} onOpenChange={(o) => !o && setDeleteProduct(null)}>
         <DialogContent>
           <DialogHeader>
@@ -258,7 +400,8 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
           </DialogHeader>
           <p>
             Tem certeza que deseja excluir &quot;{deleteProduct?.name}&quot;? Esta ação não pode
-            ser desfeita.
+            ser desfeita. Se o produto já tiver sido vendido, ele será inativado em vez de
+            removido, para manter o histórico de pedidos.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteProduct(null)}>

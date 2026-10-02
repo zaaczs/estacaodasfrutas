@@ -43,16 +43,16 @@ export default async function PedidosPage({ searchParams }: PageProps) {
   });
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Pedidos</h1>
           <p className="text-muted-foreground">
             Gerencie os pedidos do hortifruti
           </p>
         </div>
-        <Link href="/pedidos/novo">
-          <Button>
+        <Link href="/pedidos/novo" className="shrink-0">
+          <Button className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Novo pedido (adm)
           </Button>

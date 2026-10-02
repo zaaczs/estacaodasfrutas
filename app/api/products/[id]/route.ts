@@ -127,9 +127,19 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    await deleteProduct(id);
+    const result = await deleteProduct(id);
 
-    return NextResponse.json({ success: true });
+    if (result.mode === "inactivated") {
+      return NextResponse.json({
+        success: true,
+        inactivated: true,
+        message:
+          "Este produto já consta em pedidos e não pode ser apagado do banco. Ele foi inativado e deixa de aparecer na loja para novos clientes.",
+        product: result.product,
+      });
+    }
+
+    return NextResponse.json({ success: true, deleted: true });
   } catch (error) {
     console.error("DELETE /api/products/[id]:", error);
     return NextResponse.json(

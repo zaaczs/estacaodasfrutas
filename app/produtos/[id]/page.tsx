@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Product } from "@prisma/client";
 import { ArrowLeft } from "lucide-react";
 import { getProductDisplayImageUrl } from "@/lib/productImage";
@@ -16,6 +23,13 @@ import {
   parseProductComplements,
   stringifyProductComplements,
 } from "@/lib/types/productComplements";
+import {
+  PRODUCT_UNITS,
+  calcProductProfit,
+  normalizeProductUnit,
+  type ProductUnit,
+} from "@/lib/productUnit";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export default function EditarProdutoPage() {
   const params = useParams();
@@ -29,12 +43,14 @@ export default function EditarProdutoPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [complements, setComplements] = useState<ProductComplementGroup[]>([]);
   const [category, setCategory] = useState("");
-  const [unit, setUnit] = useState("");
+  const [unit, setUnit] = useState<ProductUnit>("un");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
   const [stock, setStock] = useState("");
   const [minStock, setMinStock] = useState("");
   const [active, setActive] = useState(true);
+
+  const pricing = useMemo(() => calcProductProfit(price, cost), [price, cost]);
 
   useEffect(() => {
     if (!id) return;
@@ -56,7 +72,7 @@ export default function EditarProdutoPage() {
           parseProductComplements((p as Product & { complements?: string | null }).complements)
         );
         setCategory(p.category);
-        setUnit(p.unit);
+        setUnit(normalizeProductUnit(p.unit));
         setPrice(String(p.price));
         setCost(String(p.cost));
         setStock(String(p.stock));
@@ -111,14 +127,14 @@ export default function EditarProdutoPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <p className="text-muted-foreground">Carregando…</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="max-w-2xl p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2">
           <Link href="/produtos">
@@ -174,37 +190,75 @@ export default function EditarProdutoPage() {
           </div>
           <div>
             <Label htmlFor="unit">Unidade</Label>
-            <Input
-              id="unit"
+            <Select
               value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              required
-            />
+              onValueChange={(value) => setUnit(value as ProductUnit)}
+            >
+              <SelectTrigger id="unit">
+                <SelectValue placeholder="Selecione a unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {PRODUCT_UNITS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <Label htmlFor="price">Preço (R$)</Label>
+            <Label htmlFor="price">Preço de venda (R$ / {unit})</Label>
             <Input
               id="price"
               type="number"
               step="0.01"
+              min="0"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               required
             />
           </div>
           <div>
-            <Label htmlFor="cost">Custo (R$)</Label>
+            <Label htmlFor="cost">Custo (R$ / {unit})</Label>
             <Input
               id="cost"
               type="number"
               step="0.01"
+              min="0"
               value={cost}
               onChange={(e) => setCost(e.target.value)}
               required
             />
           </div>
+          <div className="sm:col-span-2 rounded-lg border bg-muted/40 p-3">
+            <p className="text-sm font-medium">Lucro por {unit}</p>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <p
+                className={cn(
+                  "text-lg font-semibold",
+                  pricing.profit > 0 && "text-emerald-700",
+                  pricing.profit < 0 && "text-red-600",
+                  pricing.profit === 0 && "text-foreground"
+                )}
+              >
+                {formatCurrency(pricing.profit)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {pricing.margin == null
+                  ? "Margem: —"
+                  : `Margem: ${pricing.margin.toLocaleString("pt-BR", {
+                      maximumFractionDigits: 1,
+                      minimumFractionDigits: 0,
+                    })}%`}
+              </p>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Venda {formatCurrency(pricing.sale)} − Custo{" "}
+              {formatCurrency(pricing.purchase)}
+            </p>
+          </div>
           <div>
-            <Label htmlFor="stock">Estoque</Label>
+            <Label htmlFor="stock">Estoque ({unit})</Label>
             <Input
               id="stock"
               type="number"
@@ -214,7 +268,7 @@ export default function EditarProdutoPage() {
             />
           </div>
           <div>
-            <Label htmlFor="minStock">Estoque mínimo</Label>
+            <Label htmlFor="minStock">Estoque mínimo ({unit})</Label>
             <Input
               id="minStock"
               type="number"

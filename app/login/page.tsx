@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +42,11 @@ function LoginForm() {
         return;
       }
 
-      router.push(callbackUrl);
+      const session = await getSession();
+      const role = session?.user?.role;
+      const nextUrl = customerMode && role !== "CUSTOMER" ? "/dashboard" : callbackUrl;
+
+      router.push(nextUrl);
       router.refresh();
     } catch {
       setError("Erro ao fazer login. Tente novamente.");

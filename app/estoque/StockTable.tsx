@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -30,9 +31,14 @@ type MovementWithProduct = StockMovement & { product: Product };
 type Props = {
   products: Product[];
   movements: MovementWithProduct[];
+  hasActiveFilters?: boolean;
 };
 
-export function StockTable({ products, movements }: Props) {
+export function StockTable({
+  products,
+  movements,
+  hasActiveFilters = false,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [movementType, setMovementType] = useState<"ENTRY" | "SALE">("ENTRY");
@@ -94,7 +100,7 @@ export function StockTable({ products, movements }: Props) {
       <div>
         <h2 className="text-lg font-semibold mb-4">Produtos e estoque</h2>
         <p className="text-sm text-muted-foreground mb-3">
-          Clique em um produto para ajustar entrada ou saída.
+          Clique em um produto (ou em Ajustar) para registrar entrada ou saída.
         </p>
         <div className="rounded-lg border">
           <Table>
@@ -106,31 +112,62 @@ export function StockTable({ products, movements }: Props) {
                 <TableHead>Estoque</TableHead>
                 <TableHead>Mínimo</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
-                <TableRow
-                  key={product.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => openMovementForProduct(product)}
-                >
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell>{product.unit}</TableCell>
-                  <TableCell>{product.stock}</TableCell>
-                  <TableCell>{product.minStock}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        product.stock <= product.minStock ? "warning" : "success"
-                      }
-                    >
-                      {product.stock <= product.minStock ? "Baixo" : "OK"}
-                    </Badge>
+              {products.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-10 text-center">
+                    <p className="text-muted-foreground">
+                      {hasActiveFilters
+                        ? "Nenhum produto encontrado com os filtros atuais."
+                        : "Nenhum produto cadastrado."}
+                    </p>
+                    {hasActiveFilters && (
+                      <Button variant="outline" size="sm" className="mt-3" asChild>
+                        <Link href="/estoque">Limpar filtros</Link>
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                products.map((product) => (
+                  <TableRow
+                    key={product.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => openMovementForProduct(product)}
+                  >
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell>{product.unit}</TableCell>
+                    <TableCell>{product.stock}</TableCell>
+                    <TableCell>{product.minStock}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          product.stock <= product.minStock ? "warning" : "success"
+                        }
+                      >
+                        {product.stock <= product.minStock ? "Baixo" : "OK"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openMovementForProduct(product);
+                        }}
+                      >
+                        Ajustar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
@@ -138,6 +175,9 @@ export function StockTable({ products, movements }: Props) {
 
       <div>
         <h2 className="text-lg font-semibold mb-4">Últimas movimentações</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          Clique em uma movimentação para ajustar o estoque daquele produto.
+        </p>
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
@@ -149,30 +189,42 @@ export function StockTable({ products, movements }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {movements.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>{formatDate(m.createdAt)}</TableCell>
-                  <TableCell>{m.product.name}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        m.type === "ENTRY"
-                          ? "success"
-                          : m.type === "SALE"
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
-                      {m.type === "ENTRY"
-                        ? "Entrada"
-                        : m.type === "SALE"
-                        ? "Saída"
-                        : "Ajuste"}
-                    </Badge>
+              {movements.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                    Nenhuma movimentação registrada.
                   </TableCell>
-                  <TableCell>{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                movements.map((m) => (
+                  <TableRow
+                    key={m.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => openMovementForProduct(m.product)}
+                  >
+                    <TableCell>{formatDate(m.createdAt)}</TableCell>
+                    <TableCell>{m.product.name}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          m.type === "ENTRY"
+                            ? "success"
+                            : m.type === "SALE"
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
+                        {m.type === "ENTRY"
+                          ? "Entrada"
+                          : m.type === "SALE"
+                            ? "Saída"
+                            : "Ajuste"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

@@ -91,22 +91,26 @@ async function main() {
     },
   ];
 
-  for (const p of productsData) {
-    await prisma.product.create({ data: p }).catch(() => {});
+  const productCount = await prisma.product.count();
+  if (productCount === 0) {
+    for (const p of productsData) {
+      await prisma.product.create({ data: p });
+    }
+    console.log("Produtos de exemplo criados");
   }
 
-  console.log("Produtos de exemplo criados");
+  const customerCount = await prisma.customer.count();
+  if (customerCount === 0) {
+    const customersData = [
+      { name: "João Silva", phone: "(11) 99999-1111", cpfCnpj: "123.456.789-00" },
+      { name: "Maria Santos", phone: "(11) 98888-2222" },
+    ];
 
-  const customersData = [
-    { name: "João Silva", phone: "(11) 99999-1111", cpfCnpj: "123.456.789-00" },
-    { name: "Maria Santos", phone: "(11) 98888-2222" },
-  ];
-
-  for (const c of customersData) {
-    await prisma.customer.create({ data: c }).catch(() => {});
+    for (const c of customersData) {
+      await prisma.customer.create({ data: c });
+    }
+    console.log("Clientes de exemplo criados");
   }
-
-  console.log("Clientes de exemplo criados");
 }
 
 main()

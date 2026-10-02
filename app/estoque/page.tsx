@@ -68,15 +68,15 @@ export default async function EstoquePage({ searchParams }: PageProps) {
   const pageItems = getPageItems(currentPage, totalPages);
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Estoque</h1>
           <p className="text-muted-foreground">
             Controle de entradas, saídas e ajustes
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <ExportButton type="movements" />
           <StockMovementModal products={products} />
         </div>
@@ -123,7 +123,11 @@ export default async function EstoquePage({ searchParams }: PageProps) {
           </form>
         </div>
 
-        <StockTable products={products} movements={movements} />
+        <StockTable
+          products={products}
+          movements={movements}
+          hasActiveFilters={Boolean(q || category)}
+        />
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">

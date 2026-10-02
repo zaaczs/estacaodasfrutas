@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,47 @@ export function StockMovementModal({ products }: Props) {
   const [type, setType] = useState<"ENTRY" | "SALE">("ENTRY");
   const [quantity, setQuantity] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>(products);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    setAllProducts(products);
+  }, [products]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    async function loadProducts() {
+      setLoadingProducts(true);
+      try {
+        const res = await fetch("/api/products?activeOnly=false&limit=5000");
+        if (!res.ok) throw new Error("Falha ao carregar produtos");
+        const data = (await res.json()) as Product[];
+        if (!cancelled) setAllProducts(data);
+      } catch {
+        if (!cancelled) setAllProducts(products);
+      } finally {
+        if (!cancelled) setLoadingProducts(false);
+      }
+    }
+
+    void loadProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, products]);
+
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allProducts;
+    return allProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
+    );
+  }, [allProducts, search]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +99,7 @@ export function StockMovementModal({ products }: Props) {
       setProductId("");
       setType("ENTRY");
       setQuantity("");
+      setSearch("");
       window.location.reload();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao registrar");
@@ -67,7 +109,16 @@ export function StockMovementModal({ products }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setSearch("");
+          setProductId("");
+        }
+      }}
+    >
       <Button onClick={() => setOpen(true)}>Nova movimentação</Button>
       <DialogContent>
         <DialogHeader>
@@ -75,19 +126,42 @@ export function StockMovementModal({ products }: Props) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <Label htmlFor="product-search">Buscar produto</Label>
+            <Input
+              id="product-search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Digite o nome ou categoria"
+              className="mb-2"
+            />
             <Label>Produto</Label>
             <Select value={productId} onValueChange={setProductId} required>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o produto" />
+                <SelectValue
+                  placeholder={
+                    loadingProducts ? "Carregando produtos..." : "Selecione o produto"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name} ({p.stock} {p.unit})
-                  </SelectItem>
-                ))}
+                {filteredProducts.length === 0 ? (
+                  <div className="px-2 py-3 text-sm text-muted-foreground">
+                    Nenhum produto encontrado.
+                  </div>
+                ) : (
+                  filteredProducts.slice(0, 200).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} ({p.stock} {p.unit})
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {filteredProducts.length > 200 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Mostrando 200 de {filteredProducts.length}. Refine a busca.
+              </p>
+            )}
           </div>
           <div>
             <Label>Tipo</Label>
@@ -117,7 +191,7 @@ export function StockMovementModal({ products }: Props) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !productId}>
               {loading ? "Salvando..." : "Registrar"}
             </Button>
           </DialogFooter>

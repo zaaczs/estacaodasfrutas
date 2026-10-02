@@ -2,8 +2,11 @@
   "name": "estacao-das-frutas",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x || 21.x || 22.x"
+  },
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/prepareHerokuDatabase.js && prisma generate",
     "dev": "next dev -p 3001",
     "dev:clean": "node scripts/clean-next.cjs && next dev -p 3001",
     "db:sync": "prisma generate && prisma db push",
@@ -38,7 +41,9 @@
     "next-auth": "^4.24.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "prisma": "^5.22.0",
     "tailwind-merge": "^2.5.4",
+    "tsx": "^4.19.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -50,11 +55,9 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.15",
     "postcss": "^8.4.47",
-    "prisma": "^5.22.0",
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
-    "tsx": "^4.19.1",
     "typescript": "^5"
   }
 }

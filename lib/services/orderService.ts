@@ -24,6 +24,15 @@ export type CreateOrderInput = {
   customerPhoneSnapshot?: string;
 };
 
+export type UpdateOrderInput = {
+  customerId: string;
+  items: OrderItemInput[];
+  paymentMethod?: string;
+  orderType: string;
+  deliveryAddress?: string;
+  customerPhoneSnapshot?: string;
+};
+
 export type CreateOrderWithCustomerInput = {
   customer: { name: string; phone: string; address?: string; cpfCnpj?: string };
   items: OrderItemInput[];
@@ -216,6 +225,144 @@ export async function createOrder(data: CreateOrderInput) {
       items: { include: { product: true } },
       customer: true,
     },
+  });
+}
+
+export async function updateOrder(id: string, data: UpdateOrderInput) {
+  if (!data.customerId) {
+    throw new Error("Cliente é obrigatório");
+  }
+  if (data.orderType === OrderType.DELIVERY && !data.deliveryAddress?.trim()) {
+    throw new Error("Endereço é obrigatório para entrega");
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: { items: true },
+  });
+
+  if (!order) throw new Error("Pedido não encontrado");
+  if (order.status === OrderStatus.CANCELED) {
+    throw new Error("Pedido cancelado não pode ser editado");
+  }
+
+  const total = data.items.reduce((sum, i) => sum + i.quantity * i.price, 0);
+  const paymentMeta = getPaymentMeta(data.paymentMethod);
+
+  if (order.status === OrderStatus.FINISHED) {
+    const previousByProduct = new Map<string, number>();
+    for (const item of order.items) {
+      previousByProduct.set(
+        item.productId,
+        (previousByProduct.get(item.productId) ?? 0) + item.quantity
+      );
+    }
+
+    const nextByProduct = new Map<string, number>();
+    for (const item of data.items) {
+      nextByProduct.set(item.productId, (nextByProduct.get(item.productId) ?? 0) + item.quantity);
+    }
+
+    const allProductIds = new Set([...previousByProduct.keys(), ...nextByProduct.keys()]);
+    const stockChanges = [...allProductIds].map((productId) => {
+      const previous = previousByProduct.get(productId) ?? 0;
+      const next = nextByProduct.get(productId) ?? 0;
+      return { productId, delta: next - previous };
+    });
+
+    const products = await prisma.product.findMany({
+      where: { id: { in: [...allProductIds] } },
+      select: { id: true, name: true, stock: true },
+    });
+    const stockByProduct = new Map(products.map((p) => [p.id, p]));
+
+    for (const change of stockChanges) {
+      if (change.delta <= 0) continue;
+      const product = stockByProduct.get(change.productId);
+      if (!product) throw new Error("Produto do pedido não encontrado");
+      if (product.stock < change.delta) {
+        throw new Error(
+          `Estoque insuficiente para ${product.name}. Disponível: ${product.stock}`
+        );
+      }
+    }
+
+    return prisma.$transaction(async (tx) => {
+      for (const change of stockChanges) {
+        if (change.delta === 0) continue;
+        await tx.product.update({
+          where: { id: change.productId },
+          data: { stock: { increment: -change.delta } },
+        });
+        await tx.stockMovement.create({
+          data: {
+            productId: change.productId,
+            type: MovementType.ADJUSTMENT,
+            quantity: -change.delta,
+          },
+        });
+      }
+
+      await tx.orderItem.deleteMany({ where: { orderId: id } });
+
+      return tx.order.update({
+        where: { id },
+        data: {
+          customerId: data.customerId,
+          total,
+          paymentMethod: data.paymentMethod,
+          paymentCategory: paymentMeta.paymentCategory,
+          paymentStatus: paymentMeta.paymentStatus,
+          paidAt: paymentMeta.paidAt,
+          orderType: data.orderType,
+          deliveryAddress: data.deliveryAddress,
+          customerPhoneSnapshot: data.customerPhoneSnapshot,
+          items: {
+            create: data.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              notes: item.notes,
+            })),
+          },
+        },
+        include: {
+          items: { include: { product: true } },
+          customer: true,
+        },
+      });
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.orderItem.deleteMany({ where: { orderId: id } });
+
+    return tx.order.update({
+      where: { id },
+      data: {
+        customerId: data.customerId,
+        total,
+        paymentMethod: data.paymentMethod,
+        paymentCategory: paymentMeta.paymentCategory,
+        paymentStatus: paymentMeta.paymentStatus,
+        paidAt: paymentMeta.paidAt,
+        orderType: data.orderType,
+        deliveryAddress: data.deliveryAddress,
+        customerPhoneSnapshot: data.customerPhoneSnapshot,
+        items: {
+          create: data.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            notes: item.notes,
+          })),
+        },
+      },
+      include: {
+        items: { include: { product: true } },
+        customer: true,
+      },
+    });
   });
 }
 

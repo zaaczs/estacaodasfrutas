@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Printer, Check } from "lucide-react";
+import { Printer, Check, Pencil } from "lucide-react";
 
 type Order = {
   id: string;
@@ -87,7 +87,7 @@ export function PedidosTable({ orders }: Props) {
           <TableHead>Itens</TableHead>
           <TableHead>Total</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead className="w-[110px]">Impressão</TableHead>
+          <TableHead className="w-[220px]">Ações</TableHead>
           <TableHead className="w-[280px]">Atualizar status</TableHead>
         </TableRow>
       </TableHeader>
@@ -124,12 +124,20 @@ export function PedidosTable({ orders }: Props) {
               </Badge>
             </TableCell>
             <TableCell>
-              <Link href={`/pedidos/${order.id}/print`}>
-                <Button variant="ghost" size="sm" title="Imprimir pedido">
-                  <Printer className="h-4 w-4 mr-1" />
-                  Imprimir
-                </Button>
-              </Link>
+              <div className="flex flex-wrap gap-1">
+                <Link href={`/pedidos/${order.id}/print`}>
+                  <Button variant="ghost" size="sm" title="Imprimir pedido">
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimir
+                  </Button>
+                </Link>
+                <Link href={`/pedidos/${order.id}/editar`}>
+                  <Button variant="ghost" size="sm" title="Editar pedido">
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                </Link>
+              </div>
             </TableCell>
             <TableCell>
               <div className="flex flex-wrap gap-2">

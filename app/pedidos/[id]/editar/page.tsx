@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { Search, Plus, Trash2 } from "lucide-react";
+import { Search, Plus, Trash2, ArrowLeft } from "lucide-react";
 import { CustomerModal } from "@/app/clientes/CustomerModal";
 import { useSession } from "next-auth/react";
 import { formatPhoneDisplay, isValidPhoneDigits, normalizePhoneDigits } from "@/lib/phone";
@@ -44,10 +45,28 @@ type CartItem = {
   quantity: number;
 };
 
-export default function NovoPedidoPage() {
+type OrderPayload = {
+  id: string;
+  status: string;
+  customerId?: string | null;
+  customerPhoneSnapshot?: string | null;
+  orderType?: string | null;
+  deliveryAddress?: string | null;
+  paymentMethod?: string | null;
+  items: Array<{
+    quantity: number;
+    price: number;
+    product: { id: string; name: string; unit: string };
+  }>;
+};
+
+export default function EditarPedidoPage() {
+  const params = useParams();
+  const router = useRouter();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
-  const router = useRouter();
+  const id = params.id as string;
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -60,8 +79,43 @@ export default function NovoPedidoPage() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string>(PaymentMethod.PIX);
+  const [status, setStatus] = useState<string>("");
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const fetchOrder = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/orders/${id}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Erro ao carregar pedido");
+      }
+
+      const order = (await res.json()) as OrderPayload;
+      setStatus(order.status);
+      setCustomerId(order.customerId ?? "");
+      setOrderType(order.orderType ?? OrderType.PICKUP);
+      setDeliveryAddress(order.deliveryAddress ?? "");
+      setPaymentMethod(order.paymentMethod ?? PaymentMethod.PIX);
+      setCustomerPhone(formatPhoneDisplay(order.customerPhoneSnapshot ?? ""));
+      setCart(
+        order.items.map((item) => ({
+          productId: item.product.id,
+          name: item.product.name,
+          unit: item.product.unit,
+          price: item.price,
+          quantity: item.quantity,
+        }))
+      );
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao carregar pedido");
+      router.push("/pedidos");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, router]);
 
   const fetchProducts = useCallback(async () => {
     const params = new URLSearchParams();
@@ -93,6 +147,10 @@ export default function NovoPedidoPage() {
   }, []);
 
   useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
+
+  useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
@@ -107,11 +165,14 @@ export default function NovoPedidoPage() {
   useEffect(() => {
     const selectedCustomer = customers.find((c) => c.id === customerId);
     if (!selectedCustomer) return;
-    setCustomerPhone(formatPhoneDisplay(selectedCustomer.phone));
-    if (!deliveryAddress && selectedCustomer.address) {
+
+    if (!customerPhone) {
+      setCustomerPhone(formatPhoneDisplay(selectedCustomer.phone));
+    }
+    if (orderType === OrderType.DELIVERY && !deliveryAddress && selectedCustomer.address) {
       setDeliveryAddress(selectedCustomer.address);
     }
-  }, [customerId, customers, deliveryAddress]);
+  }, [customerId, customers, customerPhone, orderType, deliveryAddress]);
 
   const filteredCustomers = useMemo(() => {
     const term = customerSearch.trim().toLocaleLowerCase("pt-BR");
@@ -149,9 +210,7 @@ export default function NovoPedidoPage() {
       const exist = prev.find((c) => c.productId === product.id);
       if (exist) {
         return prev.map((c) =>
-          c.productId === product.id
-            ? { ...c, quantity: c.quantity + qty }
-            : c
+          c.productId === product.id ? { ...c, quantity: c.quantity + qty } : c
         );
       }
       return [
@@ -172,11 +231,7 @@ export default function NovoPedidoPage() {
       setCart((prev) => prev.filter((c) => c.productId !== productId));
       return;
     }
-    setCart((prev) =>
-      prev.map((c) =>
-        c.productId === productId ? { ...c, quantity } : c
-      )
-    );
+    setCart((prev) => prev.map((c) => (c.productId === productId ? { ...c, quantity } : c)));
   };
 
   const removeFromCart = (productId: string) => {
@@ -185,7 +240,11 @@ export default function NovoPedidoPage() {
 
   const total = cart.reduce((sum, i) => sum + i.quantity * i.price, 0);
 
-  async function handleFinish() {
+  async function handleSave() {
+    if (status === "CANCELED") {
+      alert("Pedidos cancelados não podem ser editados");
+      return;
+    }
     if (cart.length === 0) {
       alert("Adicione itens ao pedido");
       return;
@@ -202,10 +261,11 @@ export default function NovoPedidoPage() {
       alert("Informe um telefone válido com DDD");
       return;
     }
-    setLoading(true);
+
+    setSaving(true);
     try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId,
@@ -220,35 +280,42 @@ export default function NovoPedidoPage() {
           })),
         }),
       });
+
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Erro ao criar pedido");
-      }
-      const order = await res.json();
-
-      const finishRes = await fetch(`/api/orders/${order.id}/finish`, {
-        method: "POST",
-      });
-      if (!finishRes.ok) {
-        const err = await finishRes.json();
-        throw new Error(err.error || "Erro ao finalizar pedido");
+        throw new Error(err.error || "Erro ao salvar alterações");
       }
 
-      router.push(`/pedidos/${order.id}/print`);
+      alert("Pedido atualizado com sucesso");
+      router.push("/pedidos");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao finalizar pedido");
+      alert(e instanceof Error ? e.message : "Erro ao salvar pedido");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Carregando pedido...</p>
+      </div>
+    );
   }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Novo pedido</h1>
-        <p className="text-muted-foreground">
-          Busque produtos e adicione ao carrinho
-        </p>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Editar pedido</h1>
+          <p className="text-muted-foreground">Atualize itens e dados do pedido #{id.slice(0, 8)}</p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/pedidos">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -285,28 +352,21 @@ export default function NovoPedidoPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="max-h-[400px] overflow-y-auto space-y-2">
+            <div className="max-h-[420px] overflow-y-auto space-y-2">
               {groupedProducts.map(([category, items]) => (
                 <div key={category} className="space-y-2">
                   {!selectedCategory && (
                     <h3 className="text-sm font-semibold text-muted-foreground pt-2">{category}</h3>
                   )}
                   {items.map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
-                    >
+                    <div key={product.id} className="flex items-center justify-between rounded-lg border p-3">
                       <div>
                         <p className="font-medium">{product.name}</p>
                         <p className="text-sm text-muted-foreground">
                           {formatCurrency(product.price)} / {product.unit} · Estoque: {product.stock}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => addToCart(product)}
-                        disabled={product.stock <= 0}
-                      >
+                      <Button size="sm" onClick={() => addToCart(product)}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -324,7 +384,7 @@ export default function NovoPedidoPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Carrinho</CardTitle>
+            <CardTitle>Dados do pedido</CardTitle>
             <div className="space-y-2">
               <Label>Cliente *</Label>
               <div className="flex gap-2">
@@ -362,6 +422,7 @@ export default function NovoPedidoPage() {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="grid gap-2 md:grid-cols-2">
               <div className="space-y-1">
                 <Label>Tipo do pedido *</Label>
@@ -386,6 +447,7 @@ export default function NovoPedidoPage() {
                 />
               </div>
             </div>
+
             {orderType === OrderType.DELIVERY && (
               <div className="space-y-1">
                 <Label>Endereço *</Label>
@@ -396,6 +458,7 @@ export default function NovoPedidoPage() {
                 />
               </div>
             )}
+
             <div className="space-y-1">
               <Label>Forma de pagamento</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -419,21 +482,13 @@ export default function NovoPedidoPage() {
                   )}
                 </SelectContent>
               </Select>
-              {(paymentMethod === PaymentMethod.FIADO_SIGN ||
-                paymentMethod === PaymentMethod.FIADO_WRITE_DOWN) && (
-                <p className="text-sm rounded-md bg-amber-100 text-amber-900 px-3 py-2">
-                  Pedido FIADO: não entra no faturamento/lucro enquanto estiver pendente.
-                </p>
-              )}
             </div>
           </CardHeader>
+
           <CardContent>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+            <div className="space-y-3 max-h-[320px] overflow-y-auto">
               {cart.map((item) => (
-                <div
-                  key={item.productId}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
+                <div key={item.productId} className="flex items-center justify-between rounded-lg border p-3">
                   <div>
                     <p className="font-medium">{item.name}</p>
                     <p className="text-sm text-muted-foreground">
@@ -446,44 +501,29 @@ export default function NovoPedidoPage() {
                       min="0.01"
                       step="0.01"
                       value={item.quantity}
-                      onChange={(e) =>
-                        updateQuantity(item.productId, parseFloat(e.target.value) || 0)
-                      }
+                      onChange={(e) => updateQuantity(item.productId, parseFloat(e.target.value) || 0)}
                       className="w-20"
                     />
-                    <span className="text-sm text-muted-foreground w-8">
-                      {item.unit}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeFromCart(item.productId)}
-                    >
+                    <span className="text-sm text-muted-foreground w-8">{item.unit}</span>
+                    <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.productId)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
-                  <p className="font-medium">
-                    {formatCurrency(item.quantity * item.price)}
-                  </p>
+                  <p className="font-medium">{formatCurrency(item.quantity * item.price)}</p>
                 </div>
               ))}
               {cart.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Carrinho vazio
-                </p>
+                <p className="text-sm text-muted-foreground text-center py-8">Carrinho vazio</p>
               )}
             </div>
+
             <div className="mt-6 border-t pt-4">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
                 <span>{formatCurrency(total)}</span>
               </div>
-              <Button
-                className="w-full mt-4"
-                onClick={handleFinish}
-                disabled={cart.length === 0 || loading}
-              >
-                {loading ? "Finalizando..." : "Finalizar pedido"}
+              <Button className="w-full mt-4" onClick={handleSave} disabled={saving || cart.length === 0}>
+                {saving ? "Salvando..." : "Salvar alterações"}
               </Button>
             </div>
           </CardContent>
