@@ -37,15 +37,18 @@ type SidebarProps = {
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const visibleItems = navItems.filter(
-    (item) => item.href !== "/fiado" || session?.user?.role === "ADMIN"
-  );
+  const isAdmin = session?.user?.role === "ADMIN";
+  const visibleItems = navItems.filter((item) => {
+    if (item.href === "/dashboard" || item.href === "/fiado") return isAdmin;
+    return true;
+  });
+  const homeHref = isAdmin ? "/dashboard" : "/pedidos";
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center justify-between border-b px-4 md:px-6">
         <Link
-          href="/dashboard"
+          href={homeHref}
           className="font-semibold text-lg"
           onClick={onNavigate}
         >

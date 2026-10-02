@@ -10,6 +10,7 @@ export default async function Layout({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
+  if (session.user.role !== "ADMIN") redirect("/pedidos");
 
   return <DashboardLayout>{children}</DashboardLayout>;
 }

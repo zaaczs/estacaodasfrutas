@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Sidebar } from "./Sidebar";
 import { Button } from "@/components/ui/button";
 
@@ -11,8 +12,10 @@ export function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
+  const homeHref = session?.user?.role === "ADMIN" ? "/dashboard" : "/pedidos";
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,7 +31,7 @@ export function DashboardLayout({
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <Link href="/dashboard" className="truncate font-semibold">
+        <Link href={homeHref} className="truncate font-semibold">
           Estação das Frutas
         </Link>
       </header>

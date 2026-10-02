@@ -3,6 +3,12 @@ export const Role = {
   ATTENDANT: "ATTENDANT",
 } as const;
 
+export function homePathForRole(role?: string | null) {
+  if (role === Role.ADMIN) return "/dashboard";
+  if (role === "CUSTOMER") return "/meus-pedidos";
+  return "/pedidos";
+}
+
 export const OrderStatus = {
   RECEIVED: "RECEIVED",
   PREPARING: "PREPARING",

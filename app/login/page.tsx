@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { homePathForRole } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +15,28 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+function resolveAfterLogin(
+  role: string | undefined,
+  requestedUrl: string | null,
+  customerMode: boolean
+) {
+  const home = homePathForRole(role);
+  const requestingDashboard = !requestedUrl || requestedUrl.startsWith("/dashboard");
+
+  if (role === "ADMIN") {
+    if (customerMode) return "/dashboard";
+    return requestedUrl || "/dashboard";
+  }
+
+  if (requestingDashboard || customerMode) return home;
+  return requestedUrl || home;
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const customerMode = searchParams.get("customer") === "1";
-  const callbackUrl = searchParams.get("callbackUrl") ?? (customerMode ? "/meus-pedidos" : "/dashboard");
+  const requestedUrl = searchParams.get("callbackUrl");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -44,7 +62,7 @@ function LoginForm() {
 
       const session = await getSession();
       const role = session?.user?.role;
-      const nextUrl = customerMode && role !== "CUSTOMER" ? "/dashboard" : callbackUrl;
+      const nextUrl = resolveAfterLogin(role, requestedUrl, customerMode);
 
       router.push(nextUrl);
       router.refresh();
