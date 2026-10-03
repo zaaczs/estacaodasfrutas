@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProductsTable } from "./ProductsTable";
+import { CategoryFilterSelect } from "./CategoryFilterSelect";
 import { ProductCategoriesManager } from "./ProductCategoriesManager";
 import { ProductModal } from "./ProductModal";
 import { ImportCsvButton } from "./ImportCsvButton";
@@ -108,19 +109,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
         </div>
         <div>
           <Label htmlFor="category">Categoria</Label>
-          <select
-            id="category"
-            name="category"
-            defaultValue={category || "__all__"}
-            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="__all__">Todas categorias</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+          <CategoryFilterSelect categories={categories} value={category} />
         </div>
         <input type="hidden" name="page" value="1" />
         <Button type="submit">Filtrar</Button>

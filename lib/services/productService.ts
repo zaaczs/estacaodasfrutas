@@ -4,6 +4,7 @@ import {
   ensureCategoryExists,
   getActiveCategoryOptionsForStorefront,
   getInactiveCategoryNames,
+  listProductCategories,
 } from "./productCategoryService";
 
 export type CreateProductInput = {
@@ -89,23 +90,29 @@ export async function getActiveProductCategories(): Promise<string[]> {
 export async function getProductCategories(options?: {
   activeOnly?: boolean;
 }): Promise<string[]> {
-  const inactiveNames =
-    options?.activeOnly === false ? [] : await getInactiveCategoryNames();
-  const rows = await prisma.product.findMany({
-    where: {
-      ...(options?.activeOnly === false ? {} : { active: true }),
-      ...(inactiveNames.length > 0 ? { category: { notIn: inactiveNames } } : {}),
-    },
-    select: { category: true },
-    distinct: ["category"],
-    orderBy: { category: "asc" },
-  });
+  const activeOnly = options?.activeOnly !== false;
+  const [managed, inactiveNames, rows] = await Promise.all([
+    listProductCategories({ activeOnly }),
+    activeOnly ? getInactiveCategoryNames() : Promise.resolve([]),
+    prisma.product.findMany({
+      where: activeOnly ? { active: true } : {},
+      select: { category: true },
+      distinct: ["category"],
+    }),
+  ]);
 
-  // Só categorias que realmente existem em produtos (evita filtros vazios)
-  return rows
-    .map((r) => r.category)
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const names = new Set<string>();
+  for (const category of managed) {
+    const name = category.name?.trim();
+    if (name) names.add(name);
+  }
+  for (const row of rows) {
+    const name = row.category?.trim();
+    if (!name || inactiveNames.includes(name)) continue;
+    names.add(name);
+  }
+
+  return [...names].sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
 
 export async function countActiveProducts(whereExtra?: Prisma.ProductWhereInput) {

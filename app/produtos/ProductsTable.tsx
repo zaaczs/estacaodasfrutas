@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -29,6 +30,11 @@ import {
   getProductDisplayImageUrl,
 } from "@/lib/productImage";
 import { ProductModal } from "./ProductModal";
+import {
+  mergeCategoryNames,
+  PRODUCT_CATEGORIES_UPDATED,
+  publishProductCategories,
+} from "./categorySync";
 import type { Product } from "@prisma/client";
 
 type Props = {
@@ -38,7 +44,9 @@ type Props = {
 };
 
 export function ProductsTable({ products: initialProducts, categories, canDelete }: Props) {
+  const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
+  const [categoryOptions, setCategoryOptions] = useState(categories);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
   const [categoryTransferProduct, setCategoryTransferProduct] = useState<Product | null>(
@@ -52,6 +60,21 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
   useEffect(() => {
     setProducts(initialProducts);
   }, [initialProducts]);
+
+  useEffect(() => {
+    setCategoryOptions(categories);
+  }, [categories]);
+
+  useEffect(() => {
+    function onCategoriesUpdated(event: Event) {
+      const names = (event as CustomEvent<string[]>).detail ?? [];
+      setCategoryOptions((current) => mergeCategoryNames(current, names));
+    }
+
+    window.addEventListener(PRODUCT_CATEGORIES_UPDATED, onCategoriesUpdated);
+    return () =>
+      window.removeEventListener(PRODUCT_CATEGORIES_UPDATED, onCategoriesUpdated);
+  }, []);
 
   async function handleDelete(id: string) {
     setLoading(true);
@@ -144,7 +167,20 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
         category: next,
       });
       handleProductSaved(saved);
+      publishProductCategories([next]);
+      setCategoryOptions((current) => mergeCategoryNames(current, [next]));
       setCategoryTransferProduct(null);
+
+      const currentCategory =
+        new URLSearchParams(window.location.search).get("category")?.trim() ?? "";
+      if (currentCategory === next) {
+        router.refresh();
+      } else {
+        const params = new URLSearchParams();
+        params.set("category", next);
+        params.set("page", "1");
+        router.push(`/produtos?${params.toString()}`);
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao trocar categoria");
     } finally {
@@ -313,14 +349,14 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
               void confirmCategoryTransfer();
             }}
           >
-            {categories.length > 0 && (
+            {categoryOptions.length > 0 && (
               <div className="space-y-2">
                 <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Atalhos
                 </span>
                 <div className="max-h-28 overflow-y-auto rounded-md border bg-muted/30 p-2">
                   <div className="flex flex-wrap gap-1.5">
-                    {categories
+                    {categoryOptions
                       .slice()
                       .sort((a, b) => a.localeCompare(b, "pt-BR"))
                       .map((c) => {

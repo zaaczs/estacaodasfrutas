@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Eye, EyeOff, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { publishProductCategories } from "./categorySync";
 
 type Category = {
   id: string;
@@ -58,6 +59,7 @@ export function ProductCategoriesManager({ canManage }: Props) {
         };
       });
       setCategories(normalized);
+      publishProductCategories(normalized.map((category) => category.name));
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao carregar categorias");
     }
