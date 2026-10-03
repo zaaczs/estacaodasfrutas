@@ -40,10 +40,16 @@ import type { Product } from "@prisma/client";
 type Props = {
   products: Product[];
   categories: string[];
+  activeCategory?: string;
   canDelete: boolean;
 };
 
-export function ProductsTable({ products: initialProducts, categories, canDelete }: Props) {
+export function ProductsTable({
+  products: initialProducts,
+  categories,
+  activeCategory = "",
+  canDelete,
+}: Props) {
   const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
   const [categoryOptions, setCategoryOptions] = useState(categories);
@@ -166,21 +172,16 @@ export function ProductsTable({ products: initialProducts, categories, canDelete
       const saved = await patchProduct(categoryTransferProduct.id, {
         category: next,
       });
-      handleProductSaved(saved);
       publishProductCategories([next]);
       setCategoryOptions((current) => mergeCategoryNames(current, [next]));
       setCategoryTransferProduct(null);
 
-      const currentCategory =
-        new URLSearchParams(window.location.search).get("category")?.trim() ?? "";
-      if (currentCategory === next) {
-        router.refresh();
+      if (activeCategory && activeCategory !== next) {
+        setProducts((current) => current.filter((product) => product.id !== saved.id));
       } else {
-        const params = new URLSearchParams();
-        params.set("category", next);
-        params.set("page", "1");
-        router.push(`/produtos?${params.toString()}`);
+        handleProductSaved(saved);
       }
+      router.refresh();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Erro ao trocar categoria");
     } finally {

@@ -121,6 +121,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
       <ProductsTable
         products={products}
         categories={categories}
+        activeCategory={category}
         canDelete={session.user.role === "ADMIN"}
       />
 
