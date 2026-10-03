@@ -149,6 +149,23 @@ export async function updateProduct(id: string, data: UpdateProductInput) {
   });
 }
 
+export async function moveProductsToCategory(ids: string[], category: string) {
+  const name = category.trim();
+  if (!name) throw new Error("Categoria é obrigatória");
+
+  const uniqueIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) throw new Error("Selecione ao menos um produto");
+  if (uniqueIds.length > 200) throw new Error("Selecione no máximo 200 produtos por vez");
+
+  await ensureCategoryExists(name);
+  const result = await prisma.product.updateMany({
+    where: { id: { in: uniqueIds } },
+    data: { category: name },
+  });
+
+  return { updated: result.count, category: name };
+}
+
 export type DeleteProductResult =
   | { mode: "deleted" }
   | { mode: "inactivated"; product: Product };

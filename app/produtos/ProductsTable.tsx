@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -55,16 +55,17 @@ export function ProductsTable({
   const [categoryOptions, setCategoryOptions] = useState(categories);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
-  const [categoryTransferProduct, setCategoryTransferProduct] = useState<Product | null>(
-    null
-  );
+  const [transferIds, setTransferIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [categoryDraft, setCategoryDraft] = useState("");
+  const selectAllRef = useRef<HTMLInputElement>(null);
   const [categorySaveLoading, setCategorySaveLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [quickActionId, setQuickActionId] = useState<string | null>(null);
 
   useEffect(() => {
     setProducts(initialProducts);
+    setSelectedIds([]);
   }, [initialProducts]);
 
   useEffect(() => {
@@ -152,34 +153,82 @@ export function ProductsTable({
     }
   }
 
+  const visibleIds = products.map((product) => product.id);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  const someVisibleSelected = visibleIds.some((id) => selectedIds.includes(id));
+  const transferProduct =
+    transferIds.length === 1
+      ? products.find((product) => product.id === transferIds[0]) ?? null
+      : null;
+
+  useEffect(() => {
+    if (!selectAllRef.current) return;
+    selectAllRef.current.indeterminate = someVisibleSelected && !allVisibleSelected;
+  }, [someVisibleSelected, allVisibleSelected]);
+
+  function toggleProductSelection(id: string) {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  }
+
+  function toggleVisibleSelection() {
+    setSelectedIds(allVisibleSelected ? [] : visibleIds);
+  }
+
   function openCategoryTransferDialog(product: Product) {
-    setCategoryTransferProduct(product);
+    setTransferIds([product.id]);
     setCategoryDraft(product.category);
   }
 
+  function openBulkCategoryTransfer() {
+    if (selectedIds.length === 0) return;
+    setTransferIds(selectedIds);
+    setCategoryDraft(activeCategory);
+  }
+
+  function closeCategoryTransfer() {
+    setTransferIds([]);
+    setCategorySaveLoading(false);
+  }
+
   async function confirmCategoryTransfer() {
-    if (!categoryTransferProduct) return;
+    if (transferIds.length === 0) return;
     const next = categoryDraft.trim();
     if (!next) return;
-    if (next === categoryTransferProduct.category) {
-      setCategoryTransferProduct(null);
+    if (transferIds.length === 1 && next === transferProduct?.category) {
+      closeCategoryTransfer();
       return;
     }
 
     setCategorySaveLoading(true);
-    setQuickActionId(categoryTransferProduct.id);
+    if (transferIds.length === 1) setQuickActionId(transferIds[0]);
     try {
-      const saved = await patchProduct(categoryTransferProduct.id, {
-        category: next,
+      const response = await fetch("/api/products/bulk-category", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: transferIds, category: next }),
       });
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Falha ao mover produtos");
+      }
+
+      const movedIds = new Set(transferIds);
       publishProductCategories([next]);
       setCategoryOptions((current) => mergeCategoryNames(current, [next]));
-      setCategoryTransferProduct(null);
+      setSelectedIds((current) => current.filter((id) => !movedIds.has(id)));
+      closeCategoryTransfer();
 
       if (activeCategory && activeCategory !== next) {
-        setProducts((current) => current.filter((product) => product.id !== saved.id));
+        setProducts((current) => current.filter((product) => !movedIds.has(product.id)));
       } else {
-        handleProductSaved(saved);
+        setProducts((current) =>
+          current.map((product) =>
+            movedIds.has(product.id) ? { ...product, category: next } : product
+          )
+        );
       }
       router.refresh();
     } catch (e) {
@@ -192,10 +241,37 @@ export function ProductsTable({
 
   return (
     <>
+      {selectedIds.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+          <p className="text-sm font-medium">
+            {selectedIds.length} produto(s) selecionado(s)
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelectedIds([])}>
+              Limpar
+            </Button>
+            <Button size="sm" onClick={openBulkCategoryTransfer}>
+              <ArrowLeftRight className="mr-2 h-4 w-4" />
+              Mover para categoria
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={allVisibleSelected}
+                  onChange={toggleVisibleSelection}
+                  aria-label="Selecionar todos os produtos desta página"
+                />
+              </TableHead>
               <TableHead className="w-16">Imagem</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
@@ -208,7 +284,19 @@ export function ProductsTable({
           </TableHeader>
           <TableBody>
             {products.map((product) => (
-              <TableRow key={product.id}>
+              <TableRow
+                key={product.id}
+                className={selectedIds.includes(product.id) ? "bg-muted/40" : undefined}
+              >
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={selectedIds.includes(product.id)}
+                    onChange={() => toggleProductSelection(product.id)}
+                    aria-label={`Selecionar ${product.name}`}
+                  />
+                </TableCell>
                 <TableCell className="p-2">
                   <Link href={`/produtos/${product.id}`} className="block">
                     <img
@@ -315,12 +403,9 @@ export function ProductsTable({
       />
 
       <Dialog
-        open={!!categoryTransferProduct}
+        open={transferIds.length > 0}
         onOpenChange={(o) => {
-          if (!o) {
-            setCategoryTransferProduct(null);
-            setCategorySaveLoading(false);
-          }
+          if (!o) closeCategoryTransfer();
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -329,18 +414,27 @@ export function ProductsTable({
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <ArrowLeftRight className="h-4 w-4" />
               </span>
-              Trocar categoria
+              {transferIds.length > 1 ? "Mover produtos" : "Trocar categoria"}
             </DialogTitle>
             <DialogDescription className="text-left text-base leading-relaxed">
-              Escolha um atalho abaixo ou digite o nome. O produto{" "}
-              <span className="font-medium text-foreground">
-                {categoryTransferProduct?.name}
-              </span>{" "}
-              está em{" "}
-              <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-sm font-medium text-foreground">
-                {categoryTransferProduct?.category}
-              </span>
-              .
+              {transferIds.length > 1 ? (
+                <>
+                  Os {transferIds.length} produtos selecionados vão para a categoria
+                  escolhida. Você continua nesta lista.
+                </>
+              ) : (
+                <>
+                  Escolha um atalho abaixo ou digite o nome. O produto{" "}
+                  <span className="font-medium text-foreground">
+                    {transferProduct?.name}
+                  </span>{" "}
+                  está em{" "}
+                  <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-sm font-medium text-foreground">
+                    {transferProduct?.category}
+                  </span>
+                  .
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -361,7 +455,8 @@ export function ProductsTable({
                       .slice()
                       .sort((a, b) => a.localeCompare(b, "pt-BR"))
                       .map((c) => {
-                        const isCurrent = c === categoryTransferProduct?.category;
+                        const isCurrent =
+                          transferIds.length === 1 && c === transferProduct?.category;
                         const isSelected = c === categoryDraft.trim();
                         return (
                           <Button
@@ -403,7 +498,7 @@ export function ProductsTable({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setCategoryTransferProduct(null)}
+                onClick={closeCategoryTransfer}
                 disabled={categorySaveLoading}
               >
                 Cancelar
@@ -413,7 +508,8 @@ export function ProductsTable({
                 disabled={
                   categorySaveLoading ||
                   !categoryDraft.trim() ||
-                  categoryDraft.trim() === categoryTransferProduct?.category
+                  (transferIds.length === 1 &&
+                    categoryDraft.trim() === transferProduct?.category)
                 }
               >
                 {categorySaveLoading ? (
