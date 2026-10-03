@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Sidebar } from "./Sidebar";
@@ -12,10 +13,15 @@ export function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
   const homeHref = session?.user?.role === "ADMIN" ? "/dashboard" : "/pedidos";
+
+  if (pathname.includes("/print")) {
+    return <div className="print-shell bg-white">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
