@@ -1,5 +1,8 @@
 export function normalizePhoneDigits(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 11);
+  let digits = value.replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length > 11) digits = digits.slice(2);
+  digits = digits.replace(/^0+/, "");
+  return digits.slice(0, 11);
 }
 
 export function isValidPhoneDigits(value: string): boolean {

@@ -18,6 +18,7 @@ import { Search, Plus, Trash2 } from "lucide-react";
 import { CustomerModal } from "@/app/clientes/CustomerModal";
 import { useSession } from "next-auth/react";
 import { formatPhoneDisplay, isValidPhoneDigits, normalizePhoneDigits } from "@/lib/phone";
+import { CustomerLookup } from "@/app/pedidos/CustomerLookup";
 import { OrderType, PaymentMethod } from "@/lib/constants";
 
 type Product = {
@@ -52,7 +53,6 @@ export default function NovoPedidoPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customerSearch, setCustomerSearch] = useState("");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState<string>("");
@@ -103,25 +103,6 @@ export default function NovoPedidoPage() {
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
-
-  useEffect(() => {
-    const selectedCustomer = customers.find((c) => c.id === customerId);
-    if (!selectedCustomer) return;
-    setCustomerPhone(formatPhoneDisplay(selectedCustomer.phone));
-    if (!deliveryAddress && selectedCustomer.address) {
-      setDeliveryAddress(selectedCustomer.address);
-    }
-  }, [customerId, customers, deliveryAddress]);
-
-  const filteredCustomers = useMemo(() => {
-    const term = customerSearch.trim().toLocaleLowerCase("pt-BR");
-    if (!term) return customers;
-    return customers.filter(
-      (c) =>
-        c.name.toLocaleLowerCase("pt-BR").includes(term) ||
-        c.phone.includes(term.replace(/\D/g, ""))
-    );
-  }, [customers, customerSearch]);
 
   const groupedProducts = useMemo(() => {
     const source = [...products].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -325,66 +306,46 @@ export default function NovoPedidoPage() {
         <Card>
           <CardHeader>
             <CardTitle>Carrinho</CardTitle>
-            <div className="space-y-2">
-              <Label>Cliente *</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Buscar cliente por nome/telefone"
-                  value={customerSearch}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
-                />
-                <CustomerModal
-                  open={customerModalOpen}
-                  onOpenChange={setCustomerModalOpen}
-                  onSaved={(saved) => {
-                    setCustomers((prev) =>
-                      [saved, ...prev.filter((c) => c.id !== saved.id)].sort((a, b) =>
-                        a.name.localeCompare(b.name, "pt-BR")
-                      )
-                    );
-                    setCustomerId(saved.id);
-                    setCustomerPhone(formatPhoneDisplay(saved.phone));
-                    if (saved.address) setDeliveryAddress(saved.address);
-                  }}
-                  trigger={<Button type="button" variant="outline">Novo cliente</Button>}
-                />
-              </div>
-              <Select value={customerId || undefined} onValueChange={setCustomerId}>
+            <div className="flex justify-end">
+              <CustomerModal
+                open={customerModalOpen}
+                onOpenChange={setCustomerModalOpen}
+                onSaved={(saved) => {
+                  setCustomers((prev) =>
+                    [saved, ...prev.filter((c) => c.id !== saved.id)].sort((a, b) =>
+                      a.name.localeCompare(b.name, "pt-BR")
+                    )
+                  );
+                  setCustomerId(saved.id);
+                  setCustomerPhone(formatPhoneDisplay(saved.phone));
+                  if (saved.address) setDeliveryAddress(saved.address);
+                }}
+                trigger={<Button type="button" variant="outline">Novo cliente</Button>}
+              />
+            </div>
+            <CustomerLookup
+              customers={customers}
+              customerId={customerId}
+              customerPhone={customerPhone}
+              onSelect={(customer) => {
+                setCustomerId(customer.id);
+                setCustomerPhone(formatPhoneDisplay(customer.phone));
+                if (customer.address) setDeliveryAddress(customer.address);
+              }}
+              onPhoneChange={setCustomerPhone}
+              onClearCustomer={() => setCustomerId("")}
+            />
+            <div className="space-y-1">
+              <Label>Tipo do pedido *</Label>
+              <Select value={orderType} onValueChange={setOrderType}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredCustomers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} - {formatPhoneDisplay(c.phone)}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value={OrderType.DELIVERY}>Entrega</SelectItem>
+                  <SelectItem value={OrderType.PICKUP}>Retirada</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              <div className="space-y-1">
-                <Label>Tipo do pedido *</Label>
-                <Select value={orderType} onValueChange={setOrderType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={OrderType.DELIVERY}>Entrega</SelectItem>
-                    <SelectItem value={OrderType.PICKUP}>Retirada</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Telefone do cliente *</Label>
-                <Input
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(formatPhoneDisplay(e.target.value))}
-                  placeholder="(00) 00000-0000"
-                  inputMode="numeric"
-                  maxLength={15}
-                />
-              </div>
             </div>
             {orderType === OrderType.DELIVERY && (
               <div className="space-y-1">
