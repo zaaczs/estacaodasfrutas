@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatQuantity } from "@/lib/quantity";
 import { Printer, Check, Pencil } from "lucide-react";
 
 type Order = {
@@ -101,7 +102,7 @@ export function PedidosTable({ orders }: Props) {
                 {order.items.slice(0, 3).map((item) => (
                   <div key={item.id} className="text-xs">
                     <span className="font-medium">
-                      {item.quantity} {item.product.unit} - {item.product.name}
+                      {formatQuantity(item.quantity, item.product.unit)} {item.product.unit} - {item.product.name}
                     </span>
                     {item.notes && (
                       <p className="text-muted-foreground">{item.notes}</p>

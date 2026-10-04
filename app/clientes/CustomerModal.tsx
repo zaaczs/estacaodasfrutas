@@ -42,6 +42,7 @@ export function CustomerModal({
   const [phone, setPhone] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [address, setAddress] = useState("");
+  const [complement, setComplement] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -50,11 +51,13 @@ export function CustomerModal({
       setPhone(formatPhoneDisplay(customer.phone));
       setCpfCnpj(customer.cpfCnpj ?? "");
       setAddress(customer.address ?? "");
+      setComplement(customer.complement ?? "");
     } else {
       setName("");
       setPhone("");
       setCpfCnpj("");
       setAddress("");
+      setComplement("");
     }
   }, [customer, open]);
 
@@ -73,8 +76,9 @@ export function CustomerModal({
       const payload = {
         name,
         phone: normalizePhoneDigits(phone),
-        cpfCnpj: cpfCnpj || undefined,
-        address: address || undefined,
+        address: address.trim() || null,
+        complement: complement.trim() || null,
+        ...(customer ? { cpfCnpj: cpfCnpj.trim() || null } : {}),
       };
       const url = customer ? `/api/customers/${customer.id}` : "/api/customers";
       const method = customer ? "PATCH" : "POST";
@@ -127,20 +131,32 @@ export function CustomerModal({
               required
             />
           </div>
-          <div>
-            <Label htmlFor="cpfCnpj">CPF/CNPJ</Label>
-            <Input
-              id="cpfCnpj"
-              value={cpfCnpj}
-              onChange={(e) => setCpfCnpj(e.target.value)}
-            />
-          </div>
+          {!isCreate && (
+            <div>
+              <Label htmlFor="cpfCnpj">CPF/CNPJ</Label>
+              <Input
+                id="cpfCnpj"
+                value={cpfCnpj}
+                onChange={(e) => setCpfCnpj(e.target.value)}
+              />
+            </div>
+          )}
           <div>
             <Label htmlFor="address">Endereço</Label>
             <Input
               id="address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              placeholder="Rua, número, bairro"
+            />
+          </div>
+          <div>
+            <Label htmlFor="complement">Complemento</Label>
+            <Input
+              id="complement"
+              value={complement}
+              onChange={(e) => setComplement(e.target.value)}
+              placeholder="Apartamento, bloco, casa, referência"
             />
           </div>
           <DialogFooter>

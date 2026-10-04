@@ -3,8 +3,9 @@ import { prisma } from "@/lib/db";
 export type CreateCustomerInput = {
   name: string;
   phone: string;
-  cpfCnpj?: string;
-  address?: string;
+  cpfCnpj?: string | null;
+  address?: string | null;
+  complement?: string | null;
 };
 
 export type UpdateCustomerInput = Partial<CreateCustomerInput>;

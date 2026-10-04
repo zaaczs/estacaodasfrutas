@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,6 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -17,10 +19,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Search, Trash2 } from "lucide-react";
 import { CustomerModal } from "./CustomerModal";
 import type { Customer } from "@prisma/client";
 import { formatPhoneDisplay } from "@/lib/phone";
+import {
+  emptyCustomerSearchFilters,
+  filterCustomers,
+  hasActiveCustomerFilters,
+  type CustomerSearchFilters,
+} from "@/lib/customerSearch";
 
 type Props = {
   customers: Customer[];
@@ -28,9 +36,21 @@ type Props = {
 
 export function CustomersTable({ customers: initialCustomers }: Props) {
   const [customers, setCustomers] = useState(initialCustomers);
+  const [filters, setFilters] = useState<CustomerSearchFilters>(
+    emptyCustomerSearchFilters
+  );
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [deleteCustomer, setDeleteCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
+  const filteredCustomers = useMemo(
+    () => filterCustomers(customers, filters),
+    [customers, filters]
+  );
+  const filtersActive = hasActiveCustomerFilters(filters);
+
+  function updateFilter(field: keyof CustomerSearchFilters, value: string) {
+    setFilters((current) => ({ ...current, [field]: value }));
+  }
 
   async function handleDelete(id: string) {
     setLoading(true);
@@ -61,6 +81,69 @@ export function CustomersTable({ customers: initialCustomers }: Props) {
 
   return (
     <>
+      <div className="mb-4 space-y-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] xl:items-end">
+          <div>
+            <Label htmlFor="customer-filter-name">Nome</Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="customer-filter-name"
+                value={filters.name}
+                onChange={(event) => updateFilter("name", event.target.value)}
+                placeholder="Pesquisar por nome"
+                className="pl-9"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="customer-filter-phone">Telefone</Label>
+            <Input
+              id="customer-filter-phone"
+              value={filters.phone}
+              onChange={(event) => updateFilter("phone", event.target.value)}
+              placeholder="DDD ou número"
+              inputMode="tel"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <Label htmlFor="customer-filter-document">CPF/CNPJ</Label>
+            <Input
+              id="customer-filter-document"
+              value={filters.document}
+              onChange={(event) => updateFilter("document", event.target.value)}
+              placeholder="Documento"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <Label htmlFor="customer-filter-address">Endereço</Label>
+            <Input
+              id="customer-filter-address"
+              value={filters.address}
+              onChange={(event) => updateFilter("address", event.target.value)}
+              placeholder="Rua, bairro ou referência"
+              autoComplete="off"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setFilters(emptyCustomerSearchFilters)}
+            disabled={!filtersActive}
+          >
+            Limpar
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {filtersActive
+            ? `Mostrando ${filteredCustomers.length} de ${customers.length} cliente(s)`
+            : `${customers.length} cliente(s)`}
+        </p>
+      </div>
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -73,12 +156,28 @@ export function CustomersTable({ customers: initialCustomers }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customers.map((customer) => (
+            {filteredCustomers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  {customers.length === 0
+                    ? "Nenhum cliente cadastrado."
+                    : "Nenhum cliente encontrado com esses filtros."}
+                </TableCell>
+              </TableRow>
+            ) : null}
+            {filteredCustomers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-medium">{customer.name}</TableCell>
                 <TableCell>{formatPhoneDisplay(customer.phone)}</TableCell>
                 <TableCell>{customer.cpfCnpj ?? "-"}</TableCell>
-                <TableCell>{customer.address ?? "-"}</TableCell>
+                <TableCell>
+                  <span>{customer.address ?? "-"}</span>
+                  {customer.complement ? (
+                    <span className="block text-sm text-muted-foreground">
+                      {customer.complement}
+                    </span>
+                  ) : null}
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
                     <Button

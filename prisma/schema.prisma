@@ -45,12 +45,13 @@ model ProductCategory {
 }
 
 model Customer {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String
-  cpfCnpj   String?
-  address   String?
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  name       String
+  phone      String
+  cpfCnpj    String?
+  address    String?
+  complement String?
+  createdAt  DateTime @default(now())
 
   orders    Order[]
 }
@@ -103,4 +104,13 @@ model Expense {
   amount      Float
   date        DateTime
   createdAt   DateTime @default(now())
+}
+
+/// Imagem enviada no cadastro do produto. Fica no banco porque o disco do Heroku é efêmero
+/// e o Next em produção não serve arquivos criados em public/ depois do start.
+model ProductImage {
+  id        String   @id @default(uuid())
+  mimeType  String
+  data      Bytes
+  createdAt DateTime @default(now())
 }

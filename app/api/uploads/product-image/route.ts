@@ -1,20 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-import crypto from "node:crypto";
+import { prisma } from "@/lib/db";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
-
-function safeExt(fileName: string, mimeType: string): string {
-  const ext = path.extname(fileName || "").toLowerCase();
-  if ([".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(ext)) return ext;
-  if (mimeType === "image/png") return ".png";
-  if (mimeType === "image/webp") return ".webp";
-  if (mimeType === "image/gif") return ".gif";
-  return ".jpg";
-}
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 export async function POST(request: Request) {
   try {
@@ -30,7 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Arquivo não enviado" }, { status: 400 });
     }
 
-    if (!file.type.startsWith("image/")) {
+    if (!file.type.startsWith("image/") || !ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json({ error: "Envie uma imagem válida" }, { status: 400 });
     }
 
@@ -42,16 +32,16 @@ export async function POST(request: Request) {
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
-    const ext = safeExt(file.name, file.type);
-    const fileName = `${Date.now()}-${crypto.randomUUID()}${ext}`;
-
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "products");
-    await mkdir(uploadsDir, { recursive: true });
-    await writeFile(path.join(uploadsDir, fileName), bytes);
+    const image = await prisma.productImage.create({
+      data: {
+        mimeType: file.type,
+        data: bytes,
+      },
+    });
 
     return NextResponse.json({
-      url: `/uploads/products/${fileName}`,
-      name: fileName,
+      url: `/api/product-images/${image.id}`,
+      name: file.name,
       size: file.size,
       type: file.type,
     });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatQuantity } from "@/lib/quantity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,7 +157,7 @@ export default function MeusPedidosPage() {
                   {order.items.map((item) => (
                     <div key={item.id} className="rounded border p-2 text-sm">
                       <p className="font-medium">
-                        {item.quantity} {item.product.unit} - {item.product.name}
+                        {formatQuantity(item.quantity, item.product.unit)} {item.product.unit} - {item.product.name}
                       </p>
                       {item.notes && <p className="text-xs text-gray-500">{item.notes}</p>}
                     </div>

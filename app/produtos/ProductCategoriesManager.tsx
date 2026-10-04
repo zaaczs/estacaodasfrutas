@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -30,9 +32,10 @@ type Category = {
 
 type Props = {
   canManage: boolean;
+  canModify: boolean;
 };
 
-export function ProductCategoriesManager({ canManage }: Props) {
+export function ProductCategoriesManager({ canManage, canModify }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,6 +43,15 @@ export function ProductCategoriesManager({ canManage }: Props) {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editError, setEditError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function fetchCategories() {
     try {
@@ -130,50 +142,87 @@ export function ProductCategoriesManager({ canManage }: Props) {
     }
   }
 
-  async function handleEdit(category: Category) {
-    const nextNameRaw = window.prompt("Nome da categoria", category.name);
-    if (nextNameRaw == null) return;
-    const nextName = nextNameRaw.trim();
+  function openEditDialog(category: Category) {
+    setCategoryToEdit(category);
+    setEditName(category.name);
+    setEditDescription(category.description ?? "");
+    setEditError("");
+  }
+
+  function closeEditDialog() {
+    if (editing) return;
+    setCategoryToEdit(null);
+    setEditError("");
+  }
+
+  async function confirmEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!categoryToEdit) return;
+    const nextName = editName.trim();
     if (!nextName) {
-      alert("Nome da categoria é obrigatório.");
+      setEditError("Nome da categoria é obrigatório.");
       return;
     }
-    const nextDescriptionRaw = window.prompt(
-      "Descrição da categoria (aparece para o cliente)",
-      category.description ?? ""
-    );
-    if (nextDescriptionRaw == null) return;
-    setSavingId(category.id);
+
+    setEditing(true);
+    setEditError("");
+    setSavingId(categoryToEdit.id);
     try {
-      await patchCategory(category.id, {
+      await patchCategory(categoryToEdit.id, {
         name: nextName,
-        description: nextDescriptionRaw.trim() || "",
+        description: editDescription.trim(),
       });
+      setCategoryToEdit(null);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao editar categoria");
+      setEditError(e instanceof Error ? e.message : "Erro ao editar categoria");
     } finally {
+      setEditing(false);
       setSavingId(null);
     }
   }
 
-  async function handleDelete(category: Category) {
-    const ok = window.confirm(
-      `Excluir a categoria "${category.name}"?\n\nIsso apagará TODOS os produtos dessa categoria (e seus itens de pedido/movimentações). Esta ação não pode ser desfeita.`
-    );
-    if (!ok) return;
-    setSavingId(category.id);
+  function openDeleteDialog(category: Category) {
+    setCategoryToDelete(category);
+    setDeletePassword("");
+    setDeleteError("");
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return;
+    setCategoryToDelete(null);
+    setDeletePassword("");
+    setDeleteError("");
+  }
+
+  async function confirmDelete(e: React.FormEvent) {
+    e.preventDefault();
+    if (!categoryToDelete) return;
+    if (!deletePassword) {
+      setDeleteError("Informe a senha do login para excluir a categoria.");
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError("");
+    setSavingId(categoryToDelete.id);
     try {
-      const res = await fetch(`/api/product-categories/${category.id}`, {
+      const res = await fetch(`/api/product-categories/${categoryToDelete.id}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Erro ao excluir categoria");
       }
+      setCategoryToDelete(null);
+      setDeletePassword("");
       await fetchCategories();
+      router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao excluir categoria");
+      setDeleteError(e instanceof Error ? e.message : "Erro ao excluir categoria");
     } finally {
+      setDeleting(false);
       setSavingId(null);
     }
   }
@@ -189,7 +238,9 @@ export function ProductCategoriesManager({ canManage }: Props) {
           <DialogHeader>
             <DialogTitle>Gerenciar categorias</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Veja, crie, edite, oculte e exclua categorias sem sair da tela.
+              {canManage
+                ? "Veja, crie, edite, oculte e exclua categorias sem sair da tela."
+                : "Veja, edite e exclua categorias sem sair da tela."}
             </p>
           </DialogHeader>
 
@@ -264,37 +315,39 @@ export function ProductCategoriesManager({ canManage }: Props) {
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleToggleActive(category)}
+                        title={category.active ? "Ocultar categoria" : "Mostrar categoria"}
+                        disabled={savingId === category.id}
+                      >
+                        {savingId === category.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : category.active ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleToggleActive(category)}
-                      title={category.active ? "Ocultar categoria" : "Mostrar categoria"}
-                      disabled={!canManage || savingId === category.id}
-                    >
-                      {savingId === category.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : category.active ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(category)}
+                      onClick={() => openEditDialog(category)}
                       title="Editar categoria"
-                      disabled={!canManage || savingId === category.id}
+                      disabled={!canModify || savingId === category.id}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDelete(category)}
+                      onClick={() => openDeleteDialog(category)}
                       title="Excluir categoria"
                       className="text-destructive hover:text-destructive"
-                      disabled={!canManage || savingId === category.id}
+                      disabled={!canModify || savingId === category.id}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -305,6 +358,114 @@ export function ProductCategoriesManager({ canManage }: Props) {
               ))}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={categoryToEdit != null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) closeEditDialog();
+        }}
+      >
+        <DialogContent className="z-[60] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar categoria</DialogTitle>
+            <DialogDescription>
+              Altere o nome e a descrição. Os produtos vinculados passam a usar o novo nome.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={confirmEdit} className="space-y-4">
+            <div>
+              <Label htmlFor="edit-category-name">Nome</Label>
+              <Input
+                id="edit-category-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                autoFocus
+                disabled={editing}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-category-description">Descrição</Label>
+              <Input
+                id="edit-category-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Texto que pode ser exibido para o cliente"
+                disabled={editing}
+              />
+            </div>
+            {editError && (
+              <p className="text-sm text-destructive" role="alert">
+                {editError}
+              </p>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeEditDialog}
+                disabled={editing}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={editing}>
+                {editing ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={categoryToDelete != null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) closeDeleteDialog();
+        }}
+      >
+        <DialogContent className="z-[60] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir categoria</DialogTitle>
+            <DialogDescription>
+              Confirme com a senha do seu login para apagar
+              {categoryToDelete ? ` "${categoryToDelete.name}"` : " esta categoria"}.
+              Os produtos dessa categoria, os itens de pedido e as movimentações
+              de estoque também serão apagados.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={confirmDelete} className="space-y-4">
+            <div>
+              <Label htmlFor="delete-category-password">Senha do login</Label>
+              <Input
+                id="delete-category-password"
+                type="password"
+                autoComplete="current-password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Digite sua senha"
+                autoFocus
+                disabled={deleting}
+              />
+            </div>
+            {deleteError && (
+              <p className="text-sm text-destructive" role="alert">
+                {deleteError}
+              </p>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeDeleteDialog}
+                disabled={deleting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" variant="destructive" disabled={deleting}>
+                {deleting ? "Excluindo..." : "Excluir categoria"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>

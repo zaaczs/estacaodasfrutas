@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { Search, Plus, Trash2 } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
+import { formatQuantity, lineAmount, sumLineAmounts } from "@/lib/quantity";
+import { formatCustomerAddress } from "@/lib/customerAddress";
+import { AddByQuantityButton, CartQuantityInput } from "@/components/orders/OrderQuantityControls";
 import { CustomerModal } from "@/app/clientes/CustomerModal";
 import { useSession } from "next-auth/react";
 import { formatPhoneDisplay, isValidPhoneDigits, normalizePhoneDigits } from "@/lib/phone";
@@ -35,6 +38,7 @@ type Customer = {
   name: string;
   phone: string;
   address?: string | null;
+  complement?: string | null;
 };
 
 type CartItem = {
@@ -164,7 +168,7 @@ export default function NovoPedidoPage() {
     setCart((prev) => prev.filter((c) => c.productId !== productId));
   };
 
-  const total = cart.reduce((sum, i) => sum + i.quantity * i.price, 0);
+  const total = sumLineAmounts(cart);
 
   async function handleFinish() {
     if (cart.length === 0) {
@@ -275,21 +279,20 @@ export default function NovoPedidoPage() {
                   {items.map((product) => (
                     <div
                       key={product.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
                     >
                       <div>
                         <p className="font-medium">{product.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {formatCurrency(product.price)} / {product.unit} · Estoque: {product.stock}
+                          {formatCurrency(product.price)} / {product.unit} · Estoque:{" "}
+                          {formatQuantity(product.stock, product.unit)} {product.unit}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => addToCart(product)}
+                      <AddByQuantityButton
+                        unit={product.unit}
                         disabled={product.stock <= 0}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                        onAdd={(quantity) => addToCart(product, quantity)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -318,7 +321,8 @@ export default function NovoPedidoPage() {
                   );
                   setCustomerId(saved.id);
                   setCustomerPhone(formatPhoneDisplay(saved.phone));
-                  if (saved.address) setDeliveryAddress(saved.address);
+                  const savedAddress = formatCustomerAddress(saved.address, saved.complement);
+                  if (savedAddress) setDeliveryAddress(savedAddress);
                 }}
                 trigger={<Button type="button" variant="outline">Novo cliente</Button>}
               />
@@ -330,7 +334,8 @@ export default function NovoPedidoPage() {
               onSelect={(customer) => {
                 setCustomerId(customer.id);
                 setCustomerPhone(formatPhoneDisplay(customer.phone));
-                if (customer.address) setDeliveryAddress(customer.address);
+                const savedAddress = formatCustomerAddress(customer.address, customer.complement);
+                if (savedAddress) setDeliveryAddress(savedAddress);
               }}
               onPhoneChange={setCustomerPhone}
               onClearCustomer={() => setCustomerId("")}
@@ -393,7 +398,7 @@ export default function NovoPedidoPage() {
               {cart.map((item) => (
                 <div
                   key={item.productId}
-                  className="flex items-center justify-between rounded-lg border p-3"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
                 >
                   <div>
                     <p className="font-medium">{item.name}</p>
@@ -402,15 +407,10 @@ export default function NovoPedidoPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateQuantity(item.productId, parseFloat(e.target.value) || 0)
-                      }
-                      className="w-20"
+                    <CartQuantityInput
+                      unit={item.unit}
+                      quantity={item.quantity}
+                      onChange={(quantity) => updateQuantity(item.productId, quantity)}
                     />
                     <span className="text-sm text-muted-foreground w-8">
                       {item.unit}
@@ -424,7 +424,7 @@ export default function NovoPedidoPage() {
                     </Button>
                   </div>
                   <p className="font-medium">
-                    {formatCurrency(item.quantity * item.price)}
+                    {formatCurrency(lineAmount(item.quantity, item.price))}
                   </p>
                 </div>
               ))}

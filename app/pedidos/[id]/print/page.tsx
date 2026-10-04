@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatQuantity, lineAmount } from "@/lib/quantity";
 import { Printer, ArrowLeft } from "lucide-react";
 
 type OrderItem = {
@@ -91,9 +92,9 @@ export default function PrintPage() {
             {item.notes && <p className="cupom-note">{item.notes}</p>}
             <div className="cupom-row">
               <span>
-                {item.quantity} {item.product.unit} x {formatCurrency(item.price)}
+                {formatQuantity(item.quantity, item.product.unit)} {item.product.unit} x {formatCurrency(item.price)}
               </span>
-              <span>{formatCurrency(item.quantity * item.price)}</span>
+              <span>{formatCurrency(lineAmount(item.quantity, item.price))}</span>
             </div>
           </div>
         ))}

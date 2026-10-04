@@ -15,7 +15,10 @@ import {
 } from "@/components/ui/select";
 import type { Product } from "@prisma/client";
 import { ArrowLeft } from "lucide-react";
-import { getProductDisplayImageUrl } from "@/lib/productImage";
+import {
+  buildProductPlaceholderDataUrl,
+  getProductDisplayImageUrl,
+} from "@/lib/productImage";
 import { ProductImageUploadField } from "@/components/products/ProductImageUploadField";
 import { ProductComplementsEditor } from "@/components/products/ProductComplementsEditor";
 import {
@@ -151,6 +154,11 @@ export default function EditarProdutoPage() {
           src={getProductDisplayImageUrl(imageUrl, name)}
           alt=""
           className="w-full h-full object-cover"
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (img.src.startsWith("data:")) return;
+            img.src = buildProductPlaceholderDataUrl(name || "Produto", 400, 400);
+          }}
         />
       </div>
 

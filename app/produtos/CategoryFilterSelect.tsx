@@ -9,9 +9,14 @@ import {
 type Props = {
   categories: string[];
   value: string;
+  onValueChange?: (value: string) => void;
 };
 
-export function CategoryFilterSelect({ categories, value }: Props) {
+export function CategoryFilterSelect({
+  categories,
+  value,
+  onValueChange,
+}: Props) {
   const [options, setOptions] = useState(categories);
   const [selected, setSelected] = useState(value || "__all__");
 
@@ -39,7 +44,11 @@ export function CategoryFilterSelect({ categories, value }: Props) {
       id="category"
       name="category"
       value={selected}
-      onChange={(event) => setSelected(event.target.value)}
+      onChange={(event) => {
+        const next = event.target.value;
+        setSelected(next);
+        onValueChange?.(next === "__all__" ? "" : next);
+      }}
       className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
     >
       <option value="__all__">Todas categorias</option>

@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatPhoneDisplay, normalizePhoneDigits } from "@/lib/phone";
+import { formatCustomerAddress } from "@/lib/customerAddress";
 
 export type LookupCustomer = {
   id: string;
   name: string;
   phone: string;
   address?: string | null;
+  complement?: string | null;
 };
 
 type CustomerLookupProps = {
@@ -107,7 +109,9 @@ export function CustomerLookup({
 
       {activeField && suggestions.length > 0 && (
         <ul className="max-h-56 overflow-auto rounded-md border bg-white shadow-sm">
-          {suggestions.map((customer) => (
+          {suggestions.map((customer) => {
+            const address = formatCustomerAddress(customer.address, customer.complement);
+            return (
             <li key={customer.id}>
               <button
                 type="button"
@@ -118,17 +122,21 @@ export function CustomerLookup({
                 <span className="font-medium text-gray-900">{customer.name}</span>
                 <span className="text-gray-500">
                   {formatPhoneDisplay(customer.phone)}
-                  {customer.address ? ` · ${customer.address}` : ""}
+                  {address ? ` · ${address}` : ""}
                 </span>
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
-      {selected?.address && (
+      {formatCustomerAddress(selected?.address, selected?.complement) && (
         <p className="text-sm text-gray-600">
-          Endereço cadastrado: <span className="font-medium text-gray-900">{selected.address}</span>
+          Endereço cadastrado:{" "}
+          <span className="font-medium text-gray-900">
+            {formatCustomerAddress(selected?.address, selected?.complement)}
+          </span>
         </p>
       )}
     </div>

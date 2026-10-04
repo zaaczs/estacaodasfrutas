@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { sumLineAmounts } from "@/lib/quantity";
 import {
   OrderStatus,
   MovementType,
@@ -108,7 +109,7 @@ export async function createOrderWithCustomer(data: CreateOrderWithCustomerInput
     },
   });
 
-  const total = data.items.reduce((sum, i) => sum + i.quantity * i.price, 0);
+  const total = sumLineAmounts(data.items);
 
   const paymentMeta = getPaymentMeta(data.paymentMethod);
   const orderType = data.orderType ?? OrderType.PICKUP;
@@ -197,7 +198,7 @@ export async function createOrder(data: CreateOrderInput) {
     throw new Error("Endereço é obrigatório para entrega");
   }
 
-  const total = data.items.reduce((sum, i) => sum + i.quantity * i.price, 0);
+  const total = sumLineAmounts(data.items);
   const paymentMeta = getPaymentMeta(data.paymentMethod);
 
   return prisma.order.create({
@@ -246,7 +247,7 @@ export async function updateOrder(id: string, data: UpdateOrderInput) {
     throw new Error("Pedido cancelado não pode ser editado");
   }
 
-  const total = data.items.reduce((sum, i) => sum + i.quantity * i.price, 0);
+  const total = sumLineAmounts(data.items);
   const paymentMeta = getPaymentMeta(data.paymentMethod);
 
   if (order.status === OrderStatus.FINISHED) {

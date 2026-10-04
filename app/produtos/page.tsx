@@ -7,10 +7,8 @@ import {
   getProducts,
 } from "@/lib/services/productService";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ProductsTable } from "./ProductsTable";
-import { CategoryFilterSelect } from "./CategoryFilterSelect";
+import { ProductFilters } from "./ProductFilters";
 import { ProductCategoriesManager } from "./ProductCategoriesManager";
 import { ProductModal } from "./ProductModal";
 import { ImportCsvButton } from "./ImportCsvButton";
@@ -92,31 +90,17 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
           <ExportButton type="products" />
           <ImportCsvButton />
           <ImportProdutosButton />
-          <ProductCategoriesManager canManage={session.user.role === "ADMIN"} />
+          <ProductCategoriesManager
+            canManage={session.user.role === "ADMIN"}
+            canModify={
+              session.user.role === "ADMIN" || session.user.role === "ATTENDANT"
+            }
+          />
           <ProductModal trigger={<Button>Novo produto</Button>} />
         </div>
       </div>
 
-      <form className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto_auto] md:items-end">
-        <div>
-          <Label htmlFor="q">Buscar produto</Label>
-          <Input
-            id="q"
-            name="q"
-            defaultValue={q}
-            placeholder="Digite nome ou parte do nome"
-          />
-        </div>
-        <div>
-          <Label htmlFor="category">Categoria</Label>
-          <CategoryFilterSelect categories={categories} value={category} />
-        </div>
-        <input type="hidden" name="page" value="1" />
-        <Button type="submit">Filtrar</Button>
-        <Button type="button" variant="outline" asChild>
-          <Link href="/produtos">Limpar</Link>
-        </Button>
-      </form>
+      <ProductFilters query={q} category={category} categories={categories} />
 
       <ProductsTable
         products={products}

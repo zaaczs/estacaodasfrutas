@@ -39,7 +39,7 @@ export function getProductDisplayImageUrl(
       placeholderW ?? 400,
       placeholderH ?? 300
     );
-  // Uploads locais do próprio app (ex.: /uploads/products/arquivo.png).
+  // Caminho do próprio app: /api/product-images/:id ou arquivo estático já publicado.
   if (u.startsWith("/")) return u;
   try {
     const host = new URL(u).hostname.toLowerCase();
