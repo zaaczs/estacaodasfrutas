@@ -156,12 +156,13 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 w-11 shrink-0 text-destructive hover:text-destructive lg:h-10 lg:w-10"
+                  size="icon"
+                  className="h-11 w-11 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive lg:h-11 lg:w-11"
                   aria-label={`Apagar ${list.name}`}
                   disabled={deletingId === list.id}
                   onClick={() => void removeList(list)}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-6 w-6" />
                 </Button>
               </div>
             </CardContent>
