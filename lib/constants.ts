@@ -3,6 +3,10 @@ export const Role = {
   ATTENDANT: "ATTENDANT",
 } as const;
 
+export function isInternalRole(role?: string | null) {
+  return role === Role.ADMIN || role === Role.ATTENDANT;
+}
+
 export function homePathForRole(role?: string | null) {
   if (role === Role.ADMIN) return "/dashboard";
   if (role === "CUSTOMER") return "/meus-pedidos";

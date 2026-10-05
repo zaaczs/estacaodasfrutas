@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { migrateAdminAccount } from "../lib/adminAccount";
 
 const prisma = new PrismaClient();
 
@@ -13,15 +14,24 @@ async function main() {
     },
   }).catch(() => {});
 
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@gmail.com" },
-    update: {},
-    create: {
-      name: "Administrador",
-      email: "admin@gmail.com",
-      password: adminPassword,
-      role: "ADMIN",
-    },
+  const adminMigration = await migrateAdminAccount(prisma);
+  if (adminMigration === "conflict") {
+    console.log("Conta administradora não alterada: o e-mail novo já pertence a outro cadastro.");
+  }
+  if (adminMigration === "missing") {
+    await prisma.user.create({
+      data: {
+        name: "Administrador",
+        email: "admin@gmail.com",
+        password: adminPassword,
+        role: "ADMIN",
+      },
+    });
+  }
+
+  const admin = await prisma.user.findFirst({
+    where: { role: "ADMIN" },
+    select: { email: true },
   });
 
   const attendant = await prisma.user.upsert({
@@ -52,7 +62,7 @@ async function main() {
   }
 
   console.log("Usuários criados:", {
-    admin: admin.email,
+    admin: admin?.email,
     attendant: attendant.email,
     ...(eronEmail ? { eron: eronEmail } : {}),
   });

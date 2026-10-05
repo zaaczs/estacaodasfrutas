@@ -13,5 +13,6 @@ export const config = {
     "/pedidos/:path*",
     "/estoque/:path*",
     "/clientes/:path*",
+    "/listas/:path*",
   ],
 };

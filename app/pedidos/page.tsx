@@ -85,6 +85,7 @@ export default async function PedidosPage({ searchParams }: PageProps) {
                     Data
                   </label>
                   <Input
+                    key={selectedDateInput}
                     id="date"
                     name="date"
                     type="date"

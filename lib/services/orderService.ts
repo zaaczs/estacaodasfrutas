@@ -131,6 +131,7 @@ export async function createOrderWithCustomer(data: CreateOrderWithCustomerInput
       orderType,
       customerPhoneSnapshot: data.customer.phone,
       deliveryAddress: data.deliveryAddress ?? data.customer.address,
+      source: "CATALOG",
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,
@@ -213,6 +214,7 @@ export async function createOrder(data: CreateOrderInput) {
       orderType: data.orderType,
       deliveryAddress: data.deliveryAddress,
       customerPhoneSnapshot: data.customerPhoneSnapshot,
+      source: "INTERNAL",
       items: {
         create: data.items.map((item) => ({
           productId: item.productId,

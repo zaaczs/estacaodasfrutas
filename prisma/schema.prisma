@@ -12,8 +12,10 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      String   // ADMIN | ATTENDANT
+  role      String   // ADMIN | ATTENDANT | CUSTOMER
   createdAt DateTime @default(now())
+
+  deliveryLists DeliveryList[]
 }
 
 model Product {
@@ -69,10 +71,13 @@ model Order {
   orderType      String   @default("PICKUP") // DELIVERY | PICKUP
   customerPhoneSnapshot String?
   deliveryAddress String?
+  source         String?  // CATALOG | INTERNAL
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
 
-  items    OrderItem[]
-  customer Customer?      @relation(fields: [customerId], references: [id])
+  items             OrderItem[]
+  customer          Customer?          @relation(fields: [customerId], references: [id])
+  deliveryListItems DeliveryListItem[]
 }
 
 model OrderItem {
@@ -95,6 +100,38 @@ model StockMovement {
   createdAt DateTime @default(now())
 
   product Product @relation(fields: [productId], references: [id])
+}
+
+model DeliveryList {
+  id          String    @id @default(uuid())
+  name        String
+  type        String    // DELIVERY | WEDDING | CUSTOM
+  status      String    @default("ACTIVE") // ACTIVE | ARCHIVED
+  serviceDate DateTime
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  printedAt   DateTime?
+
+  createdBy User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  items     DeliveryListItem[]
+
+  @@index([serviceDate])
+  @@index([status])
+}
+
+model DeliveryListItem {
+  id       String   @id @default(uuid())
+  listId   String
+  orderId  String
+  position Int
+  addedAt  DateTime @default(now())
+
+  list  DeliveryList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  order Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([listId, orderId])
+  @@index([orderId])
 }
 
 model Expense {

@@ -31,18 +31,18 @@ export async function ensureQz(): Promise<QzApi> {
   return qz;
 }
 
-export function readSavedPrinter(): string {
+export function readSavedPrinter(storageKey = THERMAL_PRINTER_STORAGE_KEY): string {
   if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(THERMAL_PRINTER_STORAGE_KEY)?.trim() ?? "";
+  return window.localStorage.getItem(storageKey)?.trim() ?? "";
 }
 
-export function savePrinter(name: string) {
+export function savePrinter(name: string, storageKey = THERMAL_PRINTER_STORAGE_KEY) {
   const trimmed = name.trim();
   if (!trimmed) {
-    window.localStorage.removeItem(THERMAL_PRINTER_STORAGE_KEY);
+    window.localStorage.removeItem(storageKey);
     return;
   }
-  window.localStorage.setItem(THERMAL_PRINTER_STORAGE_KEY, trimmed);
+  window.localStorage.setItem(storageKey, trimmed);
 }
 
 export async function listQzPrinters(): Promise<string[]> {

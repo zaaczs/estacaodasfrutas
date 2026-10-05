@@ -11,3 +11,6 @@ export const RECEIPT_CODE_PAGE = 2;
 export const RECEIPT_FEED_BEFORE_CUT = 4;
 export const RECEIPT_CUT = true;
 export const THERMAL_PRINTER_STORAGE_KEY = "estacao.thermalPrinter";
+
+/** Impressora das listas neste navegador. Não altera a impressora dos cupons. */
+export const LIST_PRINTER_STORAGE_KEY = "estacao.listPrinter";
