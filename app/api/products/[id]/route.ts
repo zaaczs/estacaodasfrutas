@@ -119,13 +119,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    if (session.user.role === "ATTENDANT") {
-      return NextResponse.json(
-        { error: "Atendentes não podem excluir produtos" },
-        { status: 403 }
-      );
-    }
-
     const { id } = await params;
     const result = await deleteProduct(id);
 

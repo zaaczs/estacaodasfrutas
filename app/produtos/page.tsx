@@ -106,7 +106,6 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
         products={products}
         categories={categories}
         activeCategory={category}
-        canDelete={session.user.role === "ADMIN"}
       />
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">

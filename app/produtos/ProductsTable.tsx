@@ -41,14 +41,12 @@ type Props = {
   products: Product[];
   categories: string[];
   activeCategory?: string;
-  canDelete: boolean;
 };
 
 export function ProductsTable({
   products: initialProducts,
   categories,
   activeCategory = "",
-  canDelete,
 }: Props) {
   const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
@@ -365,17 +363,15 @@ export function ProductsTable({
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
-                {canDelete && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-11 w-11 text-destructive hover:text-destructive"
-                    onClick={() => setDeleteProduct(product)}
-                    aria-label="Excluir produto"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 text-destructive hover:text-destructive"
+                  onClick={() => setDeleteProduct(product)}
+                  aria-label="Excluir produto"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </article>
           ))
@@ -501,16 +497,15 @@ export function ProductsTable({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {canDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteProduct(product)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleteProduct(product)}
+                      aria-label="Excluir produto"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
