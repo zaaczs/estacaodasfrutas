@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowLeft, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DELIVERY_LIST_TYPE_OPTIONS } from "@/lib/lists/constants";
 import { orderMatchesQuery, repeatedAddressKeys } from "@/lib/lists/orderSearch";
 import { moveItem } from "@/lib/lists/reorder";
 import type { DeliveryListDto, DeliveryListWarning, DeliveryOrderSummary } from "@/lib/lists/types";
@@ -228,31 +227,14 @@ export function ListEditor({
         </p>
       ) : null}
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-sm sm:col-span-2">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <label className="text-sm">
           Nome da lista
           <Input className="mt-1" value={name} onChange={(event) => setName(event.target.value)} placeholder="Entregas da manhã" />
         </label>
         <label className="text-sm">
-          Tipo
-          <select className={`${fieldClass} mt-1`} value={type} onChange={(event) => setType(event.target.value)}>
-            {DELIVERY_LIST_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
           Data da lista
           <Input className="mt-1" type="date" value={serviceDate} onChange={(event) => setServiceDate(event.target.value)} />
-        </label>
-        <label className="text-sm">
-          Status
-          <select className={fieldClass} value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="ACTIVE">Ativa</option>
-            <option value="ARCHIVED">Arquivada</option>
-          </select>
         </label>
       </div>
 

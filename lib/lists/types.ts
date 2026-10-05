@@ -25,6 +25,8 @@ export type DeliveryOrderSummary = {
 export type DeliveryListItemDto = {
   id: string;
   position: number;
+  routeStatus: string;
+  routeStatusLabel: string;
   changedAfterPrint: boolean;
   order: DeliveryOrderSummary;
 };
@@ -43,6 +45,8 @@ export type DeliveryListDto = {
   createdBy: { id: string; name: string };
   deliveryCount: number;
   activeDeliveryCount: number;
+  onRouteCount: number;
+  finishedCount: number;
   items: DeliveryListItemDto[];
 };
 

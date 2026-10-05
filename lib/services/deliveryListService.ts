@@ -8,9 +8,12 @@ import {
 import {
   deliveryListStatusLabel,
   deliveryListTypeLabel,
+  deliveryRouteStatusLabel,
   isDeliveryListStatus,
   isDeliveryListType,
+  isDeliveryRouteStatus,
   DeliveryListStatus,
+  DeliveryRouteStatus,
 } from "@/lib/lists/constants";
 import { mapDeliveryOrder, type OrderForList } from "@/lib/lists/mapOrder";
 import type { DeliveryListDto, DeliveryListWarning, DeliveryOrderSummary } from "@/lib/lists/types";
@@ -63,6 +66,7 @@ type ListRecord = {
   items: Array<{
     id: string;
     position: number;
+    routeStatus: string;
     order: OrderForList;
   }>;
 };
@@ -127,6 +131,8 @@ function toDto(list: ListRecord, memberships: Map<string, { id: string; name: st
     .map((item) => ({
       id: item.id,
       position: item.position,
+      routeStatus: item.routeStatus,
+      routeStatusLabel: deliveryRouteStatusLabel(item.routeStatus),
       changedAfterPrint: Boolean(list.printedAt && item.order.updatedAt > list.printedAt),
       order: mapDeliveryOrder(item.order, memberships.get(item.order.id) ?? []),
     }));
@@ -145,6 +151,12 @@ function toDto(list: ListRecord, memberships: Map<string, { id: string; name: st
     createdBy: list.createdBy,
     deliveryCount: items.length,
     activeDeliveryCount: items.filter((item) => item.order.status !== OrderStatus.CANCELED).length,
+    onRouteCount: items.filter(
+      (item) => item.order.status !== OrderStatus.CANCELED && item.routeStatus !== DeliveryRouteStatus.FINISHED
+    ).length,
+    finishedCount: items.filter(
+      (item) => item.order.status !== OrderStatus.CANCELED && item.routeStatus === DeliveryRouteStatus.FINISHED
+    ).length,
     items,
   };
 }
@@ -288,6 +300,7 @@ export async function createDeliveryList(userId: string, input: SaveDeliveryList
         listId: created.id,
         orderId,
         position: index + 1,
+        routeStatus: DeliveryRouteStatus.ON_ROUTE,
       })),
     });
     return created.id;
@@ -337,18 +350,46 @@ export async function updateDeliveryList(id: string, input: SaveDeliveryListInpu
       }
     }
 
+    const previousRoutes = await tx.deliveryListItem.findMany({
+      where: { listId: id },
+      select: { orderId: true, routeStatus: true },
+    });
+    const routeByOrder = new Map(previousRoutes.map((item) => [item.orderId, item.routeStatus]));
+
     await tx.deliveryListItem.deleteMany({ where: { listId: id } });
     await tx.deliveryListItem.createMany({
       data: orderIds.map((orderId, index) => ({
         listId: id,
         orderId,
         position: index + 1,
+        routeStatus:
+          routeByOrder.get(orderId) === DeliveryRouteStatus.FINISHED
+            ? DeliveryRouteStatus.FINISHED
+            : DeliveryRouteStatus.ON_ROUTE,
       })),
     });
   });
 
   const list = await getDeliveryList(id);
   return { list, warnings: warningsFor(list) };
+}
+
+export async function setDeliveryItemRouteStatus(listId: string, itemId: string, routeStatus: string) {
+  if (!isDeliveryRouteStatus(routeStatus)) {
+    throw new DeliveryListError("Situação da entrega inválida");
+  }
+
+  const item = await prisma.deliveryListItem.findFirst({
+    where: { id: itemId, listId },
+    select: { id: true },
+  });
+  if (!item) throw new DeliveryListError("Entrega não encontrada", 404);
+
+  await prisma.deliveryListItem.update({
+    where: { id: itemId },
+    data: { routeStatus },
+  });
+  return getDeliveryList(listId);
 }
 
 export async function markDeliveryListPrinted(id: string) {

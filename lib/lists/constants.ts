@@ -9,6 +9,11 @@ export const DeliveryListStatus = {
   ARCHIVED: "ARCHIVED",
 } as const;
 
+export const DeliveryRouteStatus = {
+  ON_ROUTE: "ON_ROUTE",
+  FINISHED: "FINISHED",
+} as const;
+
 export const DELIVERY_LIST_TYPE_OPTIONS = [
   { value: DeliveryListType.DELIVERY, label: "Entregas" },
   { value: DeliveryListType.WEDDING, label: "Casamentos" },
@@ -32,6 +37,14 @@ export function deliveryListTypeLabel(type: string): string {
 
 export function deliveryListStatusLabel(status: string): string {
   return status === DeliveryListStatus.ARCHIVED ? "Arquivada" : "Ativa";
+}
+
+export function isDeliveryRouteStatus(value: string): boolean {
+  return value === DeliveryRouteStatus.ON_ROUTE || value === DeliveryRouteStatus.FINISHED;
+}
+
+export function deliveryRouteStatusLabel(status: string): string {
+  return status === DeliveryRouteStatus.FINISHED ? "Finalizado" : "Em rota";
 }
 
 export function deliveryListPrintTitle(type: string): string {

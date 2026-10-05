@@ -3,31 +3,23 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Plus, Printer } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatBusinessDateLabel } from "@/lib/lists/businessDate";
-import { DELIVERY_LIST_TYPE_OPTIONS } from "@/lib/lists/constants";
 import type { DeliveryListDto } from "@/lib/lists/types";
-
-const fieldClass =
-  "h-11 w-full rounded-md border border-input bg-background px-3 text-base md:h-10 md:text-sm";
 
 export function ListsHome({ initialDate }: { initialDate: string }) {
   const [date, setDate] = useState(initialDate);
-  const [type, setType] = useState("");
-  const [status, setStatus] = useState("ACTIVE");
   const [lists, setLists] = useState<DeliveryListDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
     const controller = new AbortController();
     const params = new URLSearchParams();
     if (date) params.set("date", date);
-    if (type) params.set("type", type);
-    if (status) params.set("status", status);
 
     setLoading(true);
     setError("");
@@ -37,7 +29,9 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
         if (!response.ok) throw new Error(body.error || "Erro ao carregar listas");
         return body as { lists: DeliveryListDto[] };
       })
-      .then((body) => setLists(body.lists))
+      .then((body) => {
+        if (active) setLists(body.lists);
+      })
       .catch((reason: unknown) => {
         if (reason instanceof DOMException && reason.name === "AbortError") return;
         setError(reason instanceof Error ? reason.message : "Erro ao carregar listas");
@@ -46,8 +40,23 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
         if (!controller.signal.aborted) setLoading(false);
       });
 
-    return () => controller.abort();
-  }, [date, type, status]);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      fetch(`/api/delivery-lists?${params.toString()}`)
+        .then(async (response) => {
+          const body = await response.json().catch(() => ({}));
+          if (!active || !response.ok) return;
+          setLists((body as { lists: DeliveryListDto[] }).lists);
+        })
+        .catch(() => undefined);
+    }, 4000);
+
+    return () => {
+      active = false;
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, [date]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -64,33 +73,11 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
         </Button>
       </div>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <label className="text-sm">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <label className="text-sm sm:w-52">
           Data
           <Input className="mt-1" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
         </label>
-        <label className="text-sm">
-          Tipo
-          <select className={`${fieldClass} mt-1`} value={type} onChange={(event) => setType(event.target.value)}>
-            <option value="">Todos</option>
-            {DELIVERY_LIST_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          Status
-          <select className={`${fieldClass} mt-1`} value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="">Todos</option>
-            <option value="ACTIVE">Ativas</option>
-            <option value="ARCHIVED">Arquivadas</option>
-          </select>
-        </label>
-      </div>
-
-      <div className="mb-4 flex justify-end">
         <Button type="button" variant="ghost" className="h-11 sm:h-10" onClick={() => setDate("")}>
           Ver todas as datas
         </Button>
@@ -111,14 +98,10 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
           <Card key={list.id}>
             <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-semibold">{list.name}</h2>
-                  <Badge variant="secondary">{list.typeLabel}</Badge>
-                  <Badge variant={list.status === "ARCHIVED" ? "outline" : "success"}>{list.statusLabel}</Badge>
-                </div>
+                <h2 className="text-lg font-semibold">{list.name}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {formatBusinessDateLabel(list.serviceDate)} · {list.deliveryCount} pedido(s) ·{" "}
-                  {list.activeDeliveryCount} entrega(s) · {list.createdBy.name}
+                  {formatBusinessDateLabel(list.serviceDate)} · {list.onRouteCount} em rota ·{" "}
+                  {list.finishedCount} finalizada(s) · {list.createdBy.name}
                 </p>
                 {list.printedAt ? (
                   <p className="mt-1 text-xs text-muted-foreground">Já impressa. Pode reimprimir.</p>

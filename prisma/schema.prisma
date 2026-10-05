@@ -121,11 +121,12 @@ model DeliveryList {
 }
 
 model DeliveryListItem {
-  id       String   @id @default(uuid())
-  listId   String
-  orderId  String
-  position Int
-  addedAt  DateTime @default(now())
+  id          String   @id @default(uuid())
+  listId      String
+  orderId     String
+  position    Int
+  routeStatus String   @default("ON_ROUTE") // ON_ROUTE | FINISHED
+  addedAt     DateTime @default(now())
 
   list  DeliveryList @relation(fields: [listId], references: [id], onDelete: Cascade)
   order Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
