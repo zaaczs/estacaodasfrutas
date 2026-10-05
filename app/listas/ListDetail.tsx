@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Pencil, Printer } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatBusinessDateLabel } from "@/lib/lists/businessDate";
 import { DeliveryRouteStatus } from "@/lib/lists/constants";
@@ -141,7 +142,13 @@ export function ListDetail() {
                 {String(item.position).padStart(2, "0")}
               </div>
               <div>
-                <OrderCard order={item.order} sameAddress={sharesAddress}>
+                <OrderCard
+                  order={item.order}
+                  sameAddress={sharesAddress}
+                  status={
+                    <Badge variant={finished ? "success" : "warning"}>{item.routeStatusLabel}</Badge>
+                  }
+                >
                   <Button
                     type="button"
                     className="h-11 shrink-0"
@@ -152,9 +159,6 @@ export function ListDetail() {
                     {updatingId === item.id ? "Salvando..." : finished ? "Voltar para em rota" : "Marcar finalizado"}
                   </Button>
                 </OrderCard>
-                <p className={`mt-2 text-sm font-medium ${finished ? "text-primary" : "text-amber-800"}`}>
-                  {item.routeStatusLabel}
-                </p>
                 {item.changedAfterPrint ? (
                   <p className="mt-2 text-sm text-amber-800">
                     Este pedido mudou depois da última impressão. Confira os dados antes de imprimir de novo.

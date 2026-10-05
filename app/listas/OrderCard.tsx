@@ -6,10 +6,12 @@ export function OrderCard({
   order,
   sameAddress,
   children,
+  status,
 }: {
   order: DeliveryOrderSummary;
   sameAddress: boolean;
   children?: ReactNode;
+  status?: ReactNode;
 }) {
   const canceled = order.status === "CANCELED";
 
@@ -41,11 +43,15 @@ export function OrderCard({
         {order.complement ? <p>Complemento: {order.complement}</p> : null}
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        <Badge variant={canceled ? "destructive" : "secondary"}>{order.statusLabel}</Badge>
-        <Badge variant="outline">{order.originLabel}</Badge>
-        <Badge variant="outline">{order.orderTypeLabel}</Badge>
-      </div>
+      {status !== undefined ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">{status}</div>
+      ) : (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <Badge variant={canceled ? "destructive" : "secondary"}>{order.statusLabel}</Badge>
+          <Badge variant="outline">{order.originLabel}</Badge>
+          <Badge variant="outline">{order.orderTypeLabel}</Badge>
+        </div>
+      )}
 
       {sameAddress ? (
         <p className="mt-2 text-sm font-medium text-amber-800">Mesmo endereço de outro pedido</p>
