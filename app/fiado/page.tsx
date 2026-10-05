@@ -101,7 +101,7 @@ export default function FiadoPage() {
         <div className="space-y-4">
           {groups.map((group) => (
             <Card key={group.customerId}>
-              <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <CardTitle className="text-lg">{group.customerName}</CardTitle>
                   <a
@@ -120,7 +120,7 @@ export default function FiadoPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  <Button asChild variant="outline" size="sm">
+                  <Button asChild variant="outline" className="h-11 sm:h-9">
                     <a href={buildWhatsAppUrl(group.customerPhone)} target="_blank" rel="noreferrer">
                       Cobrar
                     </a>
@@ -136,10 +136,10 @@ export default function FiadoPage() {
                         <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
                         <p className="text-muted-foreground">Data: {formatDate(order.createdAt)}</p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                         <p className="font-semibold">{formatCurrency(order.total)}</p>
                         <Button
-                          size="sm"
+                          className="h-11 w-full sm:h-9 sm:w-auto"
                           onClick={() => handlePay(order.id)}
                           disabled={updatingId === order.id}
                         >

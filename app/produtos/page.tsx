@@ -86,7 +86,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
             Gerencie o catálogo de produtos
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap [&_button]:h-11 [&_button]:w-full sm:[&_button]:h-10 sm:[&_button]:w-auto">
           <ExportButton type="products" />
           <ImportCsvButton />
           <ImportProdutosButton />
@@ -113,7 +113,7 @@ export default async function ProdutosPage({ searchParams }: PageProps) {
         <p className="text-sm text-muted-foreground">
           Mostrando {products.length} de {totalProducts} produto(s)
         </p>
-        <div className="flex items-center gap-1">
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-1 [&_a]:min-h-11 [&_a]:min-w-11 sm:[&_a]:min-h-0 sm:[&_a]:min-w-0">
           <Button
             variant="outline"
             size="sm"

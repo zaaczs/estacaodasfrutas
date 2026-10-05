@@ -97,6 +97,7 @@ function drawImageOnSquareCanvas(
 export function ProductImageUploadField({ imageUrl, productName, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const previewFrameRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
@@ -105,6 +106,8 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
   const [draggingPreview, setDraggingPreview] = useState(false);
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const draggingRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const [sourceFileName, setSourceFileName] = useState("");
   const [sourceImage, setSourceImage] = useState<HTMLImageElement | null>(null);
@@ -131,11 +134,17 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
     }
   }
 
+  function commitOffset(x: number, y: number) {
+    offsetRef.current = { x, y };
+    setOffsetX(x);
+    setOffsetY(y);
+  }
+
   function resetCropState() {
     setCropOpen(false);
     setZoom(1);
-    setOffsetX(0);
-    setOffsetY(0);
+    commitOffset(0, 0);
+    draggingRef.current = false;
     setDraggingPreview(false);
     dragStartRef.current = null;
     setSourceImage(null);
@@ -153,8 +162,7 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
       setSourceImage(image);
       setSourceFileName(file.name);
       setZoom(1);
-      setOffsetX(0);
-      setOffsetY(0);
+      commitOffset(0, 0);
       setCropOpen(true);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Erro ao preparar imagem.");
@@ -171,8 +179,8 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
         sourceImage,
         PREVIEW_SIZE,
         zoom,
-        offsetX,
-        offsetY
+        offsetRef.current.x,
+        offsetRef.current.y
       );
 
       drawImageOnSquareCanvas(
@@ -210,8 +218,11 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
   useEffect(() => {
     if (!sourceImage || !previewCanvasRef.current) return;
     const clamped = clampOffsets(sourceImage, PREVIEW_SIZE, zoom, offsetX, offsetY);
-    if (clamped.x !== offsetX) setOffsetX(clamped.x);
-    if (clamped.y !== offsetY) setOffsetY(clamped.y);
+    if (clamped.x !== offsetX || clamped.y !== offsetY) {
+      offsetRef.current = { x: clamped.x, y: clamped.y };
+      if (clamped.x !== offsetX) setOffsetX(clamped.x);
+      if (clamped.y !== offsetY) setOffsetY(clamped.y);
+    }
     drawImageOnSquareCanvas(
       previewCanvasRef.current,
       sourceImage,
@@ -223,7 +234,7 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
   }, [sourceImage, zoom, offsetX, offsetY]);
 
   return (
-    <div className="col-span-2 space-y-2">
+    <div className="col-span-full space-y-2">
       <Label>Imagem do produto</Label>
       <input
         ref={inputRef}
@@ -279,7 +290,7 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
             )}
           </div>
         </div>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button type="button" variant="outline" size="sm" onClick={onPickFile} disabled={uploading}>
             <Upload className="mr-2 h-4 w-4" />
             {uploading ? "Enviando..." : "Selecionar imagem"}
@@ -306,32 +317,38 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
             </p>
 
             <div
-              className="mx-auto h-[320px] w-[320px] overflow-hidden rounded-md border bg-muted"
-              onMouseDown={(e) => {
+              ref={previewFrameRef}
+              className="mx-auto aspect-square w-full max-w-[320px] touch-none overflow-hidden rounded-md border bg-muted"
+              onPointerDown={(e) => {
                 if (!sourceImage) return;
+                e.currentTarget.setPointerCapture(e.pointerId);
+                draggingRef.current = true;
                 setDraggingPreview(true);
                 dragStartRef.current = { x: e.clientX, y: e.clientY };
               }}
-              onMouseMove={(e) => {
-                if (!draggingPreview || !sourceImage || !dragStartRef.current) return;
-                const dx = e.clientX - dragStartRef.current.x;
-                const dy = e.clientY - dragStartRef.current.y;
+              onPointerMove={(e) => {
+                if (!draggingRef.current || !sourceImage || !dragStartRef.current) return;
+                const displayed = previewFrameRef.current?.getBoundingClientRect().width || PREVIEW_SIZE;
+                const scale = PREVIEW_SIZE / displayed;
+                const dx = (e.clientX - dragStartRef.current.x) * scale;
+                const dy = (e.clientY - dragStartRef.current.y) * scale;
                 dragStartRef.current = { x: e.clientX, y: e.clientY };
                 const next = clampOffsets(
                   sourceImage,
                   PREVIEW_SIZE,
                   zoom,
-                  offsetX + dx,
-                  offsetY + dy
+                  offsetRef.current.x + dx,
+                  offsetRef.current.y + dy
                 );
-                setOffsetX(next.x);
-                setOffsetY(next.y);
+                commitOffset(next.x, next.y);
               }}
-              onMouseUp={() => {
+              onPointerUp={() => {
+                draggingRef.current = false;
                 setDraggingPreview(false);
                 dragStartRef.current = null;
               }}
-              onMouseLeave={() => {
+              onPointerCancel={() => {
+                draggingRef.current = false;
                 setDraggingPreview(false);
                 dragStartRef.current = null;
               }}
@@ -366,8 +383,7 @@ export function ProductImageUploadField({ imageUrl, productName, onChange }: Pro
               variant="outline"
               onClick={() => {
                 setZoom(1);
-                setOffsetX(0);
-                setOffsetY(0);
+                commitOffset(0, 0);
               }}
             >
               Resetar ajuste

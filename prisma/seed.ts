@@ -35,7 +35,27 @@ async function main() {
     },
   });
 
-  console.log("Usuários criados:", { admin: admin.email, attendant: attendant.email });
+  const eronPassword = process.env.SEED_ERON_PASSWORD?.trim();
+  let eronEmail: string | undefined;
+  if (eronPassword) {
+    const eron = await prisma.user.upsert({
+      where: { email: "erondepaula@gmail.com" },
+      update: {},
+      create: {
+        name: "Eron de Paula",
+        email: "erondepaula@gmail.com",
+        password: await hash(eronPassword, 12),
+        role: attendant.role,
+      },
+    });
+    eronEmail = eron.email;
+  }
+
+  console.log("Usuários criados:", {
+    admin: admin.email,
+    attendant: attendant.email,
+    ...(eronEmail ? { eron: eronEmail } : {}),
+  });
 
   const categories = ["Frutas", "Verduras", "Legumes"];
   const productsData = [

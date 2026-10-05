@@ -67,7 +67,7 @@ export function ProductComplementsEditor({ groups, onChange }: Props) {
   }
 
   return (
-    <div className="space-y-3 col-span-2">
+    <div className="col-span-full space-y-3">
       <div className="flex items-center justify-between">
         <Label>Complementos (estilo iFood)</Label>
         <Button type="button" variant="outline" size="sm" onClick={addGroup}>

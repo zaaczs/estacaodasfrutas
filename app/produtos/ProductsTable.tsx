@@ -59,6 +59,7 @@ export function ProductsTable({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [categoryDraft, setCategoryDraft] = useState("");
   const selectAllRef = useRef<HTMLInputElement>(null);
+  const mobileSelectAllRef = useRef<HTMLInputElement>(null);
   const [categorySaveLoading, setCategorySaveLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [quickActionId, setQuickActionId] = useState<string | null>(null);
@@ -163,8 +164,9 @@ export function ProductsTable({
       : null;
 
   useEffect(() => {
-    if (!selectAllRef.current) return;
-    selectAllRef.current.indeterminate = someVisibleSelected && !allVisibleSelected;
+    const indeterminate = someVisibleSelected && !allVisibleSelected;
+    if (selectAllRef.current) selectAllRef.current.indeterminate = indeterminate;
+    if (mobileSelectAllRef.current) mobileSelectAllRef.current.indeterminate = indeterminate;
   }, [someVisibleSelected, allVisibleSelected]);
 
   function toggleProductSelection(id: string) {
@@ -242,15 +244,15 @@ export function ProductsTable({
   return (
     <>
       {selectedIds.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+        <div className="mb-3 flex flex-col gap-3 rounded-lg border bg-muted/40 px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="text-sm font-medium">
             {selectedIds.length} produto(s) selecionado(s)
           </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setSelectedIds([])}>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="h-11 w-full sm:h-9 sm:w-auto" onClick={() => setSelectedIds([])}>
               Limpar
             </Button>
-            <Button size="sm" onClick={openBulkCategoryTransfer}>
+            <Button className="h-11 w-full sm:h-9 sm:w-auto" onClick={openBulkCategoryTransfer}>
               <ArrowLeftRight className="mr-2 h-4 w-4" />
               Mover para categoria
             </Button>
@@ -258,7 +260,129 @@ export function ProductsTable({
         </div>
       )}
 
-      <div className="rounded-lg border">
+      <div className="space-y-3 xl:hidden">
+        {products.length > 0 && (
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input
+              ref={mobileSelectAllRef}
+              type="checkbox"
+              className="h-5 w-5"
+              checked={allVisibleSelected}
+              onChange={toggleVisibleSelection}
+              aria-label="Selecionar todos os produtos desta página"
+            />
+            Selecionar todos desta página
+          </label>
+        )}
+        {products.length === 0 ? (
+          <p className="rounded-lg border py-8 text-center text-sm text-muted-foreground">
+            Nenhum produto encontrado.
+          </p>
+        ) : (
+          products.map((product) => (
+            <article
+              key={product.id}
+              className={`rounded-lg border p-3 ${selectedIds.includes(product.id) ? "bg-muted/40" : "bg-card"}`}
+            >
+              <div className="flex gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 shrink-0"
+                  checked={selectedIds.includes(product.id)}
+                  onChange={() => toggleProductSelection(product.id)}
+                  aria-label={`Selecionar ${product.name}`}
+                />
+                <Link href={`/produtos/${product.id}`} className="shrink-0">
+                  <img
+                    src={getProductDisplayImageUrl(product.imageUrl, product.name, 64, 48)}
+                    alt=""
+                    className="h-14 w-14 rounded border bg-muted object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = buildProductPlaceholderDataUrl(
+                        product.name,
+                        64,
+                        48
+                      );
+                    }}
+                  />
+                </Link>
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/produtos/${product.id}`}
+                    className="break-words font-medium text-primary hover:underline"
+                  >
+                    {product.name}
+                  </Link>
+                  <p className="text-sm text-muted-foreground">{product.category}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <span>{formatCurrency(product.price)} / {product.unit}</span>
+                    <span className={product.stock <= product.minStock ? "font-medium text-amber-600" : ""}>
+                      Estoque: {product.stock} {product.unit}
+                    </span>
+                    <Badge variant={product.active ? "success" : "secondary"}>
+                      {product.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <Button
+                  variant="outline"
+                  className="h-11"
+                  onClick={() => openCategoryTransferDialog(product)}
+                  title="Trocar categoria"
+                  disabled={quickActionId === product.id}
+                >
+                  {quickActionId === product.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowLeftRight className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">Categoria</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11"
+                  onClick={() => handleToggleActive(product)}
+                  title={product.active ? "Ocultar da loja" : "Mostrar na loja"}
+                  disabled={quickActionId === product.id}
+                >
+                  {quickActionId === product.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : product.active ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">{product.active ? "Ocultar" : "Mostrar"}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11"
+                  onClick={() => setEditProduct(product)}
+                  aria-label="Editar produto"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                {canDelete && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11 text-destructive hover:text-destructive"
+                    onClick={() => setDeleteProduct(product)}
+                    aria-label="Excluir produto"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+
+      <div className="hidden rounded-lg border xl:block">
         <Table>
           <TableHeader>
             <TableRow>

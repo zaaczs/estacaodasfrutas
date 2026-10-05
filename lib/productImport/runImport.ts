@@ -1,4 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
+import { corrigirAcentuacaoNome } from "@/lib/ptBrAccents";
+import { normalizeSearchText } from "@/lib/searchText";
 import { detectarCategoria } from "./detectarCategoria";
 import { parseProdutosXlsxBuffer, type SheetProductRow } from "./parseProdutosXlsx";
 
@@ -10,7 +12,7 @@ export type ProductImportSummary = {
 };
 
 function chaveNome(nome: string): string {
-  return nome.trim().toLowerCase();
+  return normalizeSearchText(nome);
 }
 
 export async function importProductsFromXlsxBuffer(
@@ -35,7 +37,8 @@ export async function importProductsFromRows(
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const linhaPlanilha = i + 2;
-    const key = chaveNome(row.name);
+    const name = corrigirAcentuacaoNome(row.name.trim());
+    const key = chaveNome(name);
 
     if (visto.has(key)) {
       ignoradosDuplicados++;
@@ -53,7 +56,7 @@ export async function importProductsFromRows(
     try {
       await prisma.product.create({
         data: {
-          name: row.name.trim(),
+          name,
           description: row.description?.trim() || null,
           imageUrl: null,
           category: categoria,

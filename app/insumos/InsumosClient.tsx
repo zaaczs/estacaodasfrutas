@@ -85,11 +85,9 @@ export function InsumosClient({ initialExpenses }: InsumosClientProps) {
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Insumos</h1>
-          <p className="text-muted-foreground">Cadastre gastos variados do sistema</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Insumos</h1>
+        <p className="text-muted-foreground">Cadastre gastos variados do sistema</p>
       </div>
 
       <Card>
@@ -134,7 +132,7 @@ export function InsumosClient({ initialExpenses }: InsumosClientProps) {
               required
             />
             <div className="md:col-span-5 flex justify-end">
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" className="h-11 w-full md:h-10 md:w-auto" disabled={saving}>
                 {saving ? "Salvando..." : "Cadastrar gasto"}
               </Button>
             </div>
@@ -144,12 +142,42 @@ export function InsumosClient({ initialExpenses }: InsumosClientProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-xl sm:text-2xl">
             <span>Histórico de insumos</span>
             <span className="text-base font-semibold">{formatCurrency(total)}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="space-y-3 xl:hidden">
+            {expenses.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Nenhum gasto cadastrado.
+              </p>
+            ) : (
+              expenses.map((expense) => (
+                <article key={expense.id} className="rounded-lg border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="break-words font-medium">{expense.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(expense.date).toLocaleDateString("pt-BR")}
+                        {expense.category ? ` · ${expense.category}` : ""}
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-semibold">{formatCurrency(expense.amount)}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="mt-3 h-11 w-full text-red-600 hover:text-red-700"
+                    onClick={() => handleDelete(expense.id)}
+                  >
+                    Excluir
+                  </Button>
+                </article>
+              ))
+            )}
+          </div>
+          <div className="hidden xl:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -188,6 +216,7 @@ export function InsumosClient({ initialExpenses }: InsumosClientProps) {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -248,7 +248,7 @@ export function ProductCategoriesManager({ canManage, canModify }: Props) {
             {canManage && (
               <form
                 onSubmit={createCategory}
-                className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)_auto]"
+                className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)_auto] [&_button]:h-11 md:[&_button]:h-10"
               >
                 <div>
                   <Label htmlFor="new-category-name">Nova categoria</Label>
@@ -268,7 +268,7 @@ export function ProductCategoriesManager({ canManage, canModify }: Props) {
                     placeholder="Texto que pode ser exibido para o cliente"
                   />
                 </div>
-                <Button type="submit" className="self-end" disabled={loading}>
+                <Button type="submit" className="h-11 w-full self-end md:h-10 md:w-auto" disabled={loading}>
                   <Plus className="mr-2 h-4 w-4" />
                   {loading ? "Criando..." : "Adicionar"}
                 </Button>
@@ -276,7 +276,7 @@ export function ProductCategoriesManager({ canManage, canModify }: Props) {
             )}
 
             <div className="max-h-[55vh] overflow-auto rounded-lg border">
-              <div className="grid grid-cols-[minmax(0,1fr)_150px] gap-2 border-b bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground">
+              <div className="hidden grid-cols-[minmax(0,1fr)_auto] gap-2 border-b bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground sm:grid">
                 <span>Categoria</span>
                 <span>Ações</span>
               </div>
@@ -289,10 +289,10 @@ export function ProductCategoriesManager({ canManage, canModify }: Props) {
                   return (
                 <div
                   key={category.id}
-                  className="grid grid-cols-[minmax(0,1fr)_150px] items-center gap-2 border-b px-3 py-3 last:border-b-0"
+                  className="grid grid-cols-1 items-start gap-2 border-b px-3 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate font-medium">{category.name}</p>
                       <Badge variant={category.active ? "success" : "secondary"}>
                         {category.active ? "Ativa" : "Inativa"}
@@ -314,7 +314,7 @@ export function ProductCategoriesManager({ canManage, canModify }: Props) {
                         : "nenhum produto vinculado"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1 [&_button]:h-11 [&_button]:w-11 sm:[&_button]:h-10 sm:[&_button]:w-10">
                     {canManage && (
                       <Button
                         variant="ghost"

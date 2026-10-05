@@ -54,7 +54,7 @@ export default async function ProdutoDetalhePage({
             <p className="text-xs font-semibold uppercase tracking-wide text-[#2e7d32]">
               {product.category}
             </p>
-            <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+            <h1 className="break-words text-2xl font-bold text-gray-900">{product.name}</h1>
             <p className="text-sm leading-relaxed text-gray-600">{description}</p>
 
             <div className="grid gap-3 pt-2 text-sm text-gray-700 sm:grid-cols-2">

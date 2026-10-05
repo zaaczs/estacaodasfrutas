@@ -45,8 +45,8 @@ export function SimpleLineChart({
   const xTicks = points.filter((_, idx) => idx % tickStep === 0 || idx === points.length - 1);
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[560px]">
+    <div className="w-full min-w-0 overflow-hidden">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full">
         <line
           x1={padding}
           y1={height - padding}

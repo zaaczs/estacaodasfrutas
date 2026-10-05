@@ -73,7 +73,7 @@ export function ProductFilters({ query, category, categories }: Props) {
 
   return (
     <form
-      className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto_auto] md:items-end"
+      className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto_auto] md:items-end [&>button]:h-11 md:[&>button]:h-10"
       onSubmit={(event) => {
         event.preventDefault();
         applyFilters(draftRef.current, categoryRef.current);

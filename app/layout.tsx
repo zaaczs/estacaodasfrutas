@@ -1,9 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   title: {
@@ -28,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.className} antialiased min-h-screen`}>
+      <body className={`${inter.className} antialiased min-h-screen overflow-x-clip`}>
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

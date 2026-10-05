@@ -99,7 +99,7 @@ export default function MeusPedidosPage() {
               Acompanhe status: recebido, preparando ou saiu para entrega.
             </p>
           </div>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="h-11 w-full sm:h-10 sm:w-auto">
             <Link href="/">Voltar para a loja</Link>
           </Button>
         </div>
@@ -110,8 +110,8 @@ export default function MeusPedidosPage() {
               Você pode consultar pedidos recentes apenas com telefone. Para histórico completo,
               entre no perfil ou crie seu cadastro.
             </p>
-            <form onSubmit={handleManualLookup} className="flex flex-wrap gap-2 items-end">
-              <div className="min-w-[220px]">
+            <form onSubmit={handleManualLookup} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="min-w-0 w-full sm:w-auto sm:min-w-[220px] sm:flex-1">
                 <Label htmlFor="phone">Telefone com DDD</Label>
                 <Input
                   id="phone"
@@ -122,10 +122,10 @@ export default function MeusPedidosPage() {
                   placeholder="(00) 00000-0000"
                 />
               </div>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" className="h-11 w-full sm:h-10 sm:w-auto" disabled={loading}>
                 {loading ? "Consultando..." : "Consultar pedidos"}
               </Button>
-              <Button asChild type="button" variant="outline">
+              <Button asChild type="button" variant="outline" className="h-11 w-full sm:h-10 sm:w-auto">
                 <Link href="/login?customer=1&callbackUrl=/perfil">Entrar/Cadastrar</Link>
               </Button>
             </form>

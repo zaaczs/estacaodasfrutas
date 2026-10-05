@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Product } from "@prisma/client";
+import { searchTextIncludes } from "@/lib/searchText";
 
 type Props = {
   products: Product[];
@@ -63,12 +64,10 @@ export function StockMovementModal({ products }: Props) {
   }, [open, products]);
 
   const filteredProducts = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = search.trim();
     if (!q) return allProducts;
     return allProducts.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
+      (p) => searchTextIncludes(p.name, q) || searchTextIncludes(p.category, q)
     );
   }, [allProducts, search]);
 

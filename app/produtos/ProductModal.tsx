@@ -151,8 +151,8 @@ export function ProductModal({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="col-span-full">
                   <Label htmlFor="name">Nome</Label>
                   <Input
                     id="name"
@@ -161,7 +161,7 @@ export function ProductModal({
                     required
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-full">
                   <Label htmlFor="description">Descrição (visível na loja)</Label>
                   <Input
                     id="description"
@@ -228,7 +228,7 @@ export function ProductModal({
                     required
                   />
                 </div>
-                <div className="col-span-2 rounded-lg border bg-muted/40 p-3">
+                <div className="col-span-full rounded-lg border bg-muted/40 p-3">
                   <p className="text-sm font-medium">Lucro por {unit}</p>
                   <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
                     <p

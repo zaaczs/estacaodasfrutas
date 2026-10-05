@@ -69,39 +69,42 @@ export default async function PedidosPage({ searchParams }: PageProps) {
               </p>
             </div>
 
-            <form className="flex flex-wrap items-end gap-2">
-              <Button type="button" variant="outline" size="icon" asChild>
-                <Link href={`/pedidos?date=${previousDateInput}`} title="Dia anterior">
-                  <ChevronLeft className="h-4 w-4" />
-                </Link>
-              </Button>
+            <form className="flex w-full min-w-0 flex-col gap-2 sm:w-auto">
+              <div className="flex items-end gap-2">
+                <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0 md:h-10 md:w-10" asChild>
+                  <Link href={`/pedidos?date=${previousDateInput}`} title="Dia anterior">
+                    <ChevronLeft className="h-4 w-4" />
+                  </Link>
+                </Button>
 
-              <div>
-                <label
-                  htmlFor="date"
-                  className="mb-1 block text-xs font-medium text-muted-foreground"
-                >
-                  Data
-                </label>
-                <Input
-                  id="date"
-                  name="date"
-                  type="date"
-                  defaultValue={selectedDateInput}
-                  className="w-[180px]"
-                />
+                <div className="min-w-0 flex-1 sm:w-[180px] sm:flex-none">
+                  <label
+                    htmlFor="date"
+                    className="mb-1 block text-xs font-medium text-muted-foreground"
+                  >
+                    Data
+                  </label>
+                  <Input
+                    id="date"
+                    name="date"
+                    type="date"
+                    defaultValue={selectedDateInput}
+                    className="w-full sm:w-[180px]"
+                  />
+                </div>
+
+                <Button type="button" variant="outline" size="icon" className="h-11 w-11 shrink-0 md:h-10 md:w-10" asChild>
+                  <Link href={`/pedidos?date=${nextDateInput}`} title="Próximo dia">
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
-
-              <Button type="submit">Filtrar</Button>
-              <Button type="button" variant="outline" asChild>
-                <Link href={`/pedidos?date=${toInputDate(new Date())}`}>Hoje</Link>
-              </Button>
-
-              <Button type="button" variant="outline" size="icon" asChild>
-                <Link href={`/pedidos?date=${nextDateInput}`} title="Próximo dia">
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </Button>
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button type="submit" className="h-11 md:h-10">Filtrar</Button>
+                <Button type="button" variant="outline" className="h-11 md:h-10" asChild>
+                  <Link href={`/pedidos?date=${toInputDate(new Date())}`}>Hoje</Link>
+                </Button>
+              </div>
             </form>
           </div>
         </CardHeader>

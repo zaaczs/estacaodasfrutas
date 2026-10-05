@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatPhoneDisplay, normalizePhoneDigits } from "@/lib/phone";
-import { formatCustomerAddress } from "@/lib/customerAddress";
+import { formatCustomerAddress, formatCustomerSearchResult } from "@/lib/customerAddress";
+import { customerMatchesFreeText } from "@/lib/customerSearch";
+import { normalizeSearchText } from "@/lib/searchText";
 
 export type LookupCustomer = {
   id: string;
@@ -23,13 +25,12 @@ type CustomerLookupProps = {
   onClearCustomer: () => void;
 };
 
-function matchesQuery(customer: LookupCustomer, query: string) {
-  const term = query.trim().toLocaleLowerCase("pt-BR");
-  const digits = normalizePhoneDigits(query);
-  const phoneDigits = normalizePhoneDigits(customer.phone);
-  const nameMatches = term.length > 0 && customer.name.toLocaleLowerCase("pt-BR").includes(term);
-  const phoneMatches = digits.length >= 3 && phoneDigits.includes(digits);
-  return nameMatches || phoneMatches;
+function matchesQuery(customer: LookupCustomer, query: string, field: "name" | "phone") {
+  if (field === "phone") {
+    const digits = normalizePhoneDigits(query);
+    return digits.length >= 3 && normalizePhoneDigits(customer.phone).includes(digits);
+  }
+  return customerMatchesFreeText(customer, query);
 }
 
 export function CustomerLookup({
@@ -51,7 +52,10 @@ export function CustomerLookup({
   const suggestions = useMemo(() => {
     const query = activeField === "phone" ? customerPhone : nameQuery;
     if (!activeField || query.trim().length < 2) return [];
-    return customers.filter((customer) => matchesQuery(customer, query)).slice(0, 8);
+    return customers
+      .filter((customer) => matchesQuery(customer, query, activeField))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+      .slice(0, 25);
   }, [activeField, customerPhone, customers, nameQuery]);
 
   function choose(customer: LookupCustomer) {
@@ -66,7 +70,7 @@ export function CustomerLookup({
         <Label>Nome do cliente *</Label>
         <Input
           value={nameQuery}
-          placeholder="Digite o nome do cliente"
+          placeholder="Nome, telefone ou endereço"
           autoComplete="off"
           onFocus={() => setActiveField("name")}
           onBlur={() => setActiveField(null)}
@@ -77,7 +81,8 @@ export function CustomerLookup({
             if (selected && value.trim() !== selected.name) onClearCustomer();
             const exact = customers.filter(
               (customer) =>
-                customer.name.toLocaleLowerCase("pt-BR") === value.trim().toLocaleLowerCase("pt-BR")
+                normalizeSearchText(customer.name) === normalizeSearchText(value) &&
+                normalizeSearchText(value).length > 0
             );
             if (exact.length === 1) choose(exact[0]);
           }}
@@ -109,25 +114,21 @@ export function CustomerLookup({
 
       {activeField && suggestions.length > 0 && (
         <ul className="max-h-56 overflow-auto rounded-md border bg-white shadow-sm">
-          {suggestions.map((customer) => {
-            const address = formatCustomerAddress(customer.address, customer.complement);
-            return (
+          {suggestions.map((customer) => (
             <li key={customer.id}>
               <button
                 type="button"
-                className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-gray-50"
+                className="flex min-h-11 w-full flex-col items-start break-words px-3 py-2 text-left text-sm hover:bg-gray-50"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => choose(customer)}
               >
-                <span className="font-medium text-gray-900">{customer.name}</span>
-                <span className="text-gray-500">
-                  {formatPhoneDisplay(customer.phone)}
-                  {address ? ` · ${address}` : ""}
+                <span className="font-medium text-gray-900">
+                  {formatCustomerSearchResult(customer.name, customer.address, customer.complement)}
                 </span>
+                <span className="text-gray-500">{formatPhoneDisplay(customer.phone)}</span>
               </button>
             </li>
-            );
-          })}
+          ))}
         </ul>
       )}
 

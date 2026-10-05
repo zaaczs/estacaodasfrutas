@@ -26,6 +26,7 @@ import {
   buildProductPlaceholderDataUrl,
   getProductDisplayImageUrl,
 } from "@/lib/productImage";
+import { searchTextIncludes } from "@/lib/searchText";
 import {
   Home,
   ShoppingCart,
@@ -127,13 +128,9 @@ function ProductCard({
   onAdd: (p: StorefrontProduct) => void;
   searchTerm?: string;
 }) {
-  const normalizedSearch = (searchTerm ?? "").trim().toLocaleLowerCase("pt-BR");
-  const nameMatches =
-    normalizedSearch.length > 0 &&
-    product.name.toLocaleLowerCase("pt-BR").includes(normalizedSearch);
-  const categoryMatches =
-    normalizedSearch.length > 0 &&
-    product.category.toLocaleLowerCase("pt-BR").includes(normalizedSearch);
+  const normalizedSearch = (searchTerm ?? "").trim();
+  const nameMatches = searchTextIncludes(product.name, normalizedSearch);
+  const categoryMatches = searchTextIncludes(product.category, normalizedSearch);
   const hasComplements = parseProductComplements(product.complements).length > 0;
 
   return (
@@ -178,14 +175,14 @@ function ProductCard({
           </p>
         )}
         <div className="flex items-center justify-between mt-auto pt-3 gap-2">
-          <span className="font-bold text-[#2e7d32] text-sm">
+          <span className="min-w-0 break-words font-bold text-[#2e7d32] text-sm">
             {formatCurrency(product.price)}
             <span className="text-xs font-normal text-gray-500">/{product.unit}</span>
           </span>
           <Button
             type="button"
             size="sm"
-            className="rounded-full h-8 w-8 p-0 shrink-0 bg-[#2e7d32] hover:bg-[#1b5e20]"
+            className="h-11 w-11 shrink-0 rounded-full bg-[#2e7d32] p-0 hover:bg-[#1b5e20] sm:h-8 sm:w-8"
             onClick={() => onAdd(product)}
             disabled={product.stock <= 0}
             title={product.stock <= 0 ? "Sem estoque" : hasComplements ? "Configurar" : "Adicionar"}
@@ -641,7 +638,7 @@ export function PublicStorefront({ initialProducts }: Props) {
 
           {visibleCategories.length > 0 && (
             <div className="mt-3 space-y-2">
-              <div className="flex gap-2 overflow-x-auto pb-2 items-center">
+              <div className="flex min-w-0 items-center gap-2 overflow-x-auto overscroll-x-contain pb-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -709,7 +706,7 @@ export function PublicStorefront({ initialProducts }: Props) {
             )}
             {(isDebouncing || listLoading || products.length > 0) && (
               <div
-                className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ${
+                className={`grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${
                   isDebouncing || listLoading ? "opacity-60 pointer-events-none" : ""
                 }`}
               >
@@ -795,7 +792,7 @@ export function PublicStorefront({ initialProducts }: Props) {
                     </p>
                   )}
                   <div
-                    className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ${
+                    className={`grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 ${
                       listLoading ? "opacity-60 pointer-events-none" : ""
                     }`}
                   >
@@ -880,7 +877,7 @@ export function PublicStorefront({ initialProducts }: Props) {
           >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <h3 className="text-lg font-bold">{configProduct.name}</h3>
+                <h3 className="break-words text-lg font-bold">{configProduct.name}</h3>
                 <p className="text-sm text-gray-500">
                   Selecione os complementos antes de adicionar.
                 </p>
@@ -888,7 +885,7 @@ export function PublicStorefront({ initialProducts }: Props) {
               <button
                 type="button"
                 onClick={() => setConfigProduct(null)}
-                className="rounded-full p-2 hover:bg-gray-100"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-gray-100"
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
@@ -934,15 +931,15 @@ export function PublicStorefront({ initialProducts }: Props) {
               })}
             </div>
 
-            <div className="mt-4 flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setConfigProduct(null)}>
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => setConfigProduct(null)}>
                 Cancelar
               </Button>
               <Button
                 type="button"
                 onClick={confirmAddWithComplements}
                 disabled={!canConfirmComplements(configProduct)}
-                className="bg-[#2e7d32] hover:bg-[#1b5e20]"
+                className="h-11 w-full bg-[#2e7d32] hover:bg-[#1b5e20] sm:h-10 sm:w-auto"
               >
                 Adicionar ao carrinho
               </Button>
@@ -1092,50 +1089,55 @@ export function PublicStorefront({ initialProducts }: Props) {
                   {cart.map((item) => (
                     <div
                       key={item.key}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                      className="flex flex-col gap-3 rounded-lg bg-gray-50 p-3 sm:flex-row sm:items-center"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{item.name}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words font-medium">{item.name}</p>
                         {item.notes && (
-                          <p className="text-[11px] text-gray-500">{item.notes}</p>
+                          <p className="break-words text-[11px] text-gray-500">{item.notes}</p>
                         )}
                         <p className="text-sm text-gray-500">
                           {formatCurrency(item.price)} / {item.unit}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.key, item.quantity - 1)}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500"
-                          onClick={() => removeFromCart(item.key)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-11 w-11 sm:h-8 sm:w-8"
+                            onClick={() => updateQuantity(item.key, item.quantity - 1)}
+                            aria-label="Diminuir quantidade"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-8 text-center font-medium">{item.quantity}</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-11 w-11 sm:h-8 sm:w-8"
+                            onClick={() => updateQuantity(item.key, item.quantity + 1)}
+                            aria-label="Aumentar quantidade"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-11 w-11 text-red-500 sm:h-8 sm:w-8"
+                            onClick={() => removeFromCart(item.key)}
+                            aria-label="Remover item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="shrink-0 text-right font-semibold">
+                          {formatCurrency(item.quantity * item.price)}
+                        </p>
                       </div>
-                      <p className="font-semibold w-20 text-right">
-                        {formatCurrency(item.quantity * item.price)}
-                      </p>
                     </div>
                   ))}
                   {cart.length === 0 && (

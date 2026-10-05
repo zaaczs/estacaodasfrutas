@@ -271,7 +271,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 id="period"
                 name="period"
                 defaultValue={period}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-11 w-full rounded-md border bg-background px-3 text-base md:h-10 md:text-sm"
               >
                 <option value="weekly">Semanal</option>
                 <option value="monthly">Mensal</option>
@@ -287,7 +287,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 id="month"
                 name="month"
                 defaultValue={String(selectedMonth)}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-11 w-full rounded-md border bg-background px-3 text-base md:h-10 md:text-sm"
               >
                 {Array.from({ length: 12 }, (_, idx) => (
                   <option key={idx} value={idx}>
@@ -307,7 +307,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 id="year"
                 name="year"
                 defaultValue={String(selectedYear)}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-11 w-full rounded-md border bg-background px-3 text-base md:h-10 md:text-sm"
               >
                 {yearOptions.map((year) => (
                   <option key={year} value={year}>
@@ -320,7 +320,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             <div className="flex items-end">
               <button
                 type="submit"
-                className="h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
+                className="h-11 w-full rounded-md bg-primary px-4 text-base font-medium text-primary-foreground hover:opacity-90 md:h-10 md:text-sm"
               >
                 Aplicar filtros
               </button>

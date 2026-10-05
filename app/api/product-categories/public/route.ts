@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getActiveCategoryOptionsForStorefront } from "@/lib/services/productCategoryService";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const categories = await getActiveCategoryOptionsForStorefront();

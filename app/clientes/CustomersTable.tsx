@@ -144,7 +144,63 @@ export function CustomersTable({ customers: initialCustomers }: Props) {
         </p>
       </div>
 
-      <div className="rounded-lg border">
+      <div className="space-y-3 xl:hidden">
+        {filteredCustomers.length === 0 ? (
+          <p className="rounded-lg border py-8 text-center text-sm text-muted-foreground">
+            {customers.length === 0
+              ? "Nenhum cliente cadastrado."
+              : "Nenhum cliente encontrado com esses filtros."}
+          </p>
+        ) : (
+          filteredCustomers.map((customer) => (
+            <article key={customer.id} className="rounded-lg border bg-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="break-words font-medium">{customer.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatPhoneDisplay(customer.phone)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11"
+                    onClick={() => setEditCustomer(customer)}
+                    aria-label={`Editar ${customer.name}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-11 text-destructive hover:text-destructive"
+                    onClick={() => setDeleteCustomer(customer)}
+                    aria-label={`Excluir ${customer.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <dl className="mt-3 space-y-1 text-sm">
+                <div>
+                  <dt className="text-muted-foreground">CPF/CNPJ</dt>
+                  <dd className="break-words">{customer.cpfCnpj ?? "-"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Endereço</dt>
+                  <dd className="break-words">{customer.address ?? "-"}</dd>
+                  {customer.complement ? (
+                    <dd className="break-words text-muted-foreground">{customer.complement}</dd>
+                  ) : null}
+                </div>
+              </dl>
+            </article>
+          ))
+        )}
+      </div>
+
+      <div className="hidden rounded-lg border xl:block">
         <Table>
           <TableHeader>
             <TableRow>

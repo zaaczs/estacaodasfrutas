@@ -24,6 +24,11 @@ import { useSession } from "next-auth/react";
 import { formatPhoneDisplay, isValidPhoneDigits, normalizePhoneDigits } from "@/lib/phone";
 import { CustomerLookup } from "@/app/pedidos/CustomerLookup";
 import { OrderType, PaymentMethod } from "@/lib/constants";
+import {
+  categoryOptionLabel,
+  parseCategoryOptions,
+  type CategoryOption,
+} from "@/lib/categoryLabel";
 
 type Product = {
   id: string;
@@ -73,7 +78,7 @@ export default function EditarPedidoPage() {
   const id = params.id as string;
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
@@ -135,10 +140,10 @@ export default function EditarPedidoPage() {
   }, [search, selectedCategory]);
 
   const fetchCategories = useCallback(async () => {
-    const res = await fetch("/api/products/categories");
+    const res = await fetch("/api/products/categories", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
-      setCategories(Array.isArray(data) ? data : []);
+      setCategories(parseCategoryOptions(data));
     }
   }, []);
 
@@ -159,7 +164,10 @@ export default function EditarPedidoPage() {
   }, [fetchProducts]);
 
   useEffect(() => {
-    fetchCategories();
+    void fetchCategories();
+    const onFocus = () => void fetchCategories();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [fetchCategories]);
 
   useEffect(() => {
@@ -189,8 +197,8 @@ export default function EditarPedidoPage() {
       map.get(category)!.push(product);
     }
     const orderedKeys = [...map.keys()].sort((a, b) => {
-      const ia = categories.indexOf(a);
-      const ib = categories.indexOf(b);
+      const ia = categories.findIndex((category) => category.name === a);
+      const ib = categories.findIndex((category) => category.name === b);
       if (ia === -1 && ib === -1) return a.localeCompare(b, "pt-BR");
       if (ia === -1) return 1;
       if (ib === -1) return -1;
@@ -317,7 +325,7 @@ export default function EditarPedidoPage() {
         <Card>
           <CardHeader>
             <CardTitle>Produtos</CardTitle>
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 [&>*]:shrink-0">
               <Button
                 size="sm"
                 variant={selectedCategory ? "outline" : "default"}
@@ -327,12 +335,12 @@ export default function EditarPedidoPage() {
               </Button>
               {categories.map((category) => (
                 <Button
-                  key={category}
+                  key={category.name}
                   size="sm"
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(category)}
+                  variant={selectedCategory === category.name ? "default" : "outline"}
+                  onClick={() => setSelectedCategory(category.name)}
                 >
-                  {category}
+                  {categoryOptionLabel(category)}
                 </Button>
               ))}
             </div>
@@ -351,12 +359,16 @@ export default function EditarPedidoPage() {
               {groupedProducts.map(([category, items]) => (
                 <div key={category} className="space-y-2">
                   {!selectedCategory && (
-                    <h3 className="text-sm font-semibold text-muted-foreground pt-2">{category}</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground pt-2">
+                      {categoryOptionLabel(
+                        categories.find((item) => item.name === category) ?? { name: category }
+                      )}
+                    </h3>
                   )}
                   {items.map((product) => (
                     <div key={product.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
-                      <div>
-                        <p className="font-medium">{product.name}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words font-medium">{product.name}</p>
                         <p className="text-sm text-muted-foreground">
                           {formatCurrency(product.price)} / {product.unit} · Estoque:{" "}
                           {formatQuantity(product.stock, product.unit)} {product.unit}
@@ -382,7 +394,7 @@ export default function EditarPedidoPage() {
         <Card>
           <CardHeader>
             <CardTitle>Dados do pedido</CardTitle>
-            <div className="flex justify-end">
+            <div className="flex sm:justify-end">
               <CustomerModal
                 open={customerModalOpen}
                 onOpenChange={setCustomerModalOpen}
@@ -397,7 +409,7 @@ export default function EditarPedidoPage() {
                   const savedAddress = formatCustomerAddress(saved.address, saved.complement);
                   if (savedAddress) setDeliveryAddress(savedAddress);
                 }}
-                trigger={<Button type="button" variant="outline">Novo cliente</Button>}
+                trigger={<Button type="button" variant="outline" className="h-11 w-full sm:h-10 sm:w-auto">Novo cliente</Button>}
               />
             </div>
             <CustomerLookup
@@ -467,8 +479,8 @@ export default function EditarPedidoPage() {
             <div className="space-y-3 max-h-[320px] overflow-y-auto">
               {cart.map((item) => (
                 <div key={item.productId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
-                  <div>
-                    <p className="font-medium">{item.name}</p>
+                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                    <p className="break-words font-medium">{item.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {formatCurrency(item.price)} / {item.unit}
                     </p>

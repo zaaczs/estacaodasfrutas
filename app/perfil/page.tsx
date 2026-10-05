@@ -23,7 +23,7 @@ export default async function PerfilPage() {
             <strong>Email:</strong> {session.user.email ?? "-"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button asChild>
             <Link href="/meus-pedidos">Ver meus pedidos</Link>
           </Button>

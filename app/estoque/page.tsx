@@ -84,7 +84,7 @@ export default async function EstoquePage({ searchParams }: PageProps) {
 
       <div className="space-y-8">
         <div className="space-y-3">
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 [&>*]:shrink-0">
             <Button
               size="sm"
               variant={category ? "outline" : "default"}
@@ -116,8 +116,8 @@ export default async function EstoquePage({ searchParams }: PageProps) {
             </div>
             <input type="hidden" name="category" value={category || "__all__"} />
             <input type="hidden" name="page" value="1" />
-            <Button type="submit">Buscar</Button>
-            <Button type="button" variant="outline" asChild>
+            <Button type="submit" className="h-11 md:h-10">Buscar</Button>
+            <Button type="button" variant="outline" className="h-11 md:h-10" asChild>
               <Link href="/estoque">Limpar</Link>
             </Button>
           </form>
@@ -133,7 +133,7 @@ export default async function EstoquePage({ searchParams }: PageProps) {
           <p className="text-sm text-muted-foreground">
             Mostrando {products.length} de {totalProducts} produto(s)
           </p>
-          <div className="flex items-center gap-1">
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-1 [&_a]:min-h-11 [&_a]:min-w-11 sm:[&_a]:min-h-0 sm:[&_a]:min-w-0">
             <Button
               variant="outline"
               size="sm"

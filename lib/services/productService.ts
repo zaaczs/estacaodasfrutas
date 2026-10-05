@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { normalizeSearchText } from "@/lib/searchText";
 import { Prisma, type Product } from "@prisma/client";
 import {
   ensureCategoryExists,
@@ -22,18 +23,24 @@ export type CreateProductInput = {
 
 export type UpdateProductInput = Partial<CreateProductInput> & { active?: boolean };
 
+function matchesProductSearch(
+  product: { name: string; category: string },
+  search: string
+): boolean {
+  const query = normalizeSearchText(search);
+  if (!query) return true;
+  return (
+    normalizeSearchText(product.name).includes(query) ||
+    normalizeSearchText(product.category).includes(query)
+  );
+}
+
 async function buildProductWhere(options?: {
-  search?: string;
   category?: string;
   activeOnly?: boolean;
 }): Promise<Prisma.ProductWhereInput> {
   const where: Prisma.ProductWhereInput = {};
   const and: Prisma.ProductWhereInput[] = [];
-
-  if (options?.search) {
-    const q = options.search.trim();
-    where.OR = [{ name: { contains: q } }, { category: { contains: q } }];
-  }
 
   if (options?.category) {
     and.push({ category: options.category });
@@ -54,6 +61,14 @@ async function buildProductWhere(options?: {
   return where;
 }
 
+async function listSearchCandidates(where: Prisma.ProductWhereInput) {
+  return prisma.product.findMany({
+    where,
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, category: true },
+  });
+}
+
 export async function getProducts(options?: {
   search?: string;
   category?: string;
@@ -62,13 +77,31 @@ export async function getProducts(options?: {
   skip?: number;
 }) {
   const where = await buildProductWhere(options);
+  const search = options?.search?.trim() ?? "";
 
-  return prisma.product.findMany({
-    where,
-    orderBy: { name: "asc" },
-    take: options?.take,
-    skip: options?.skip,
+  if (!search) {
+    return prisma.product.findMany({
+      where,
+      orderBy: { name: "asc" },
+      take: options?.take,
+      skip: options?.skip,
+    });
+  }
+
+  const matches = (await listSearchCandidates(where)).filter((product) =>
+    matchesProductSearch(product, search)
+  );
+  const skip = options?.skip ?? 0;
+  const page = options?.take == null ? matches.slice(skip) : matches.slice(skip, skip + options.take);
+  const ids = page.map((product) => product.id);
+  if (ids.length === 0) return [];
+
+  const products = await prisma.product.findMany({
+    where: { id: { in: ids } },
   });
+  const order = new Map(ids.map((id, index) => [id, index]));
+  products.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  return products;
 }
 
 export async function countProducts(options?: {
@@ -77,14 +110,23 @@ export async function countProducts(options?: {
   activeOnly?: boolean;
 }) {
   const where = await buildProductWhere(options);
-  return prisma.product.count({
-    where,
-  });
+  const search = options?.search?.trim() ?? "";
+  if (!search) {
+    return prisma.product.count({ where });
+  }
+
+  const products = await listSearchCandidates(where);
+  return products.filter((product) => matchesProductSearch(product, search)).length;
 }
 
-export async function getActiveProductCategories(): Promise<string[]> {
+export async function getActiveProductCategories(): Promise<
+  Array<{ name: string; description: string | null }>
+> {
   const rows = await getActiveCategoryOptionsForStorefront();
-  return rows.map((r) => r.name);
+  return rows.map((row) => ({
+    name: row.name,
+    description: row.description?.trim() || null,
+  }));
 }
 
 export async function getProductCategories(options?: {

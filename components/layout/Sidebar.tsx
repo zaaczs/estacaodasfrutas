@@ -58,7 +58,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           type="button"
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="lg:hidden"
           onClick={onNavigate}
           aria-label="Fechar menu"
         >
@@ -70,7 +70,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:min-h-0"
           onClick={onNavigate}
         >
           <ExternalLink className="h-5 w-5 shrink-0" />
@@ -86,7 +86,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors lg:min-h-0",
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -145,7 +145,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop: sidebar fixa */}
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 border-r bg-card print:hidden md:block">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-64 border-r bg-card print:hidden lg:block">
         <SidebarNav />
       </aside>
 
@@ -153,7 +153,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       <div
         id="admin-mobile-menu"
         className={cn(
-          "fixed inset-0 z-50 print:hidden md:hidden",
+          "fixed inset-0 z-50 print:hidden lg:hidden",
           open ? "pointer-events-auto" : "pointer-events-none"
         )}
         aria-hidden={!open}

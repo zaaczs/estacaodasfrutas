@@ -25,11 +25,12 @@ export function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-card px-3 print:hidden md:hidden">
+      <header className="sticky top-0 z-40 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-3 border-b bg-card px-3 pt-[env(safe-area-inset-top)] print:hidden lg:hidden">
         <Button
           type="button"
           variant="ghost"
           size="icon"
+          className="h-11 w-11"
           onClick={() => setMobileOpen(true)}
           aria-label="Abrir menu de módulos"
           aria-expanded={mobileOpen}
@@ -44,7 +45,7 @@ export function DashboardLayout({
 
       <Sidebar open={mobileOpen} onClose={closeMobileMenu} />
 
-      <main className="min-w-0 md:pl-64 print:pl-0">{children}</main>
+      <main className="min-w-0 lg:pl-64 print:pl-0">{children}</main>
     </div>
   );
 }

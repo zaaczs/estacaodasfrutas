@@ -102,7 +102,62 @@ export function StockTable({
         <p className="text-sm text-muted-foreground mb-3">
           Clique em um produto (ou em Ajustar) para registrar entrada ou saída.
         </p>
-        <div className="rounded-lg border">
+        <div className="space-y-3 xl:hidden">
+          {products.length === 0 ? (
+            <div className="rounded-lg border px-4 py-10 text-center">
+              <p className="text-muted-foreground">
+                {hasActiveFilters
+                  ? "Nenhum produto encontrado com os filtros atuais."
+                  : "Nenhum produto cadastrado."}
+              </p>
+              {hasActiveFilters && (
+                <Button variant="outline" className="mt-3 h-11" asChild>
+                  <Link href="/estoque">Limpar filtros</Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+            products.map((product) => (
+              <article key={product.id} className="rounded-lg border bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words font-medium">{product.name}</p>
+                    <p className="text-sm text-muted-foreground">{product.category}</p>
+                  </div>
+                  <Badge
+                    variant={product.stock <= product.minStock ? "warning" : "success"}
+                    className="shrink-0"
+                  >
+                    {product.stock <= product.minStock ? "Baixo" : "OK"}
+                  </Badge>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground">Estoque</dt>
+                    <dd>
+                      {product.stock} {product.unit}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Mínimo</dt>
+                    <dd>
+                      {product.minStock} {product.unit}
+                    </dd>
+                  </div>
+                </dl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 h-11 w-full"
+                  onClick={() => openMovementForProduct(product)}
+                >
+                  Ajustar
+                </Button>
+              </article>
+            ))
+          )}
+        </div>
+        <div className="hidden rounded-lg border xl:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -178,7 +233,38 @@ export function StockTable({
         <p className="text-sm text-muted-foreground mb-3">
           Clique em uma movimentação para ajustar o estoque daquele produto.
         </p>
-        <div className="rounded-lg border">
+        <div className="space-y-3 xl:hidden">
+          {movements.length === 0 ? (
+            <p className="rounded-lg border py-8 text-center text-sm text-muted-foreground">
+              Nenhuma movimentação registrada.
+            </p>
+          ) : (
+            movements.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className="flex w-full flex-col gap-1 rounded-lg border bg-card p-4 text-left"
+                onClick={() => openMovementForProduct(m.product)}
+              >
+                <span className="break-words font-medium">{m.product.name}</span>
+                <span className="text-sm text-muted-foreground">{formatDate(m.createdAt)}</span>
+                <span className="mt-1 flex items-center justify-between gap-2">
+                  <Badge
+                    variant={
+                      m.type === "ENTRY" ? "success" : m.type === "SALE" ? "secondary" : "outline"
+                    }
+                  >
+                    {m.type === "ENTRY" ? "Entrada" : m.type === "SALE" ? "Saída" : "Ajuste"}
+                  </Badge>
+                  <span className="font-medium">
+                    {m.quantity > 0 ? `+${m.quantity}` : m.quantity}
+                  </span>
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+        <div className="hidden rounded-lg border xl:block">
           <Table>
             <TableHeader>
               <TableRow>
