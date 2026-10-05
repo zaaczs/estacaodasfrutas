@@ -392,6 +392,12 @@ export async function setDeliveryItemRouteStatus(listId: string, itemId: string,
   return getDeliveryList(listId);
 }
 
+export async function deleteDeliveryList(id: string) {
+  const current = await prisma.deliveryList.findUnique({ where: { id }, select: { id: true } });
+  if (!current) throw new DeliveryListError("Lista não encontrada", 404);
+  await prisma.deliveryList.delete({ where: { id } });
+}
+
 export async function markDeliveryListPrinted(id: string) {
   const current = await prisma.deliveryList.findUnique({ where: { id }, select: { id: true } });
   if (!current) throw new DeliveryListError("Lista não encontrada", 404);

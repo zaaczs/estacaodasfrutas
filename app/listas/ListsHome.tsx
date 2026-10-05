@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Eye, Pencil, Plus, Printer } from "lucide-react";
+import { Eye, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
   const [lists, setLists] = useState<DeliveryListDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState("");
+  const deletingRef = useRef(new Set<string>());
 
   useEffect(() => {
     let active = true;
@@ -30,7 +32,7 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
         return body as { lists: DeliveryListDto[] };
       })
       .then((body) => {
-        if (active) setLists(body.lists);
+        if (active) setLists(body.lists.filter((list) => !deletingRef.current.has(list.id)));
       })
       .catch((reason: unknown) => {
         if (reason instanceof DOMException && reason.name === "AbortError") return;
@@ -46,7 +48,9 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
         .then(async (response) => {
           const body = await response.json().catch(() => ({}));
           if (!active || !response.ok) return;
-          setLists((body as { lists: DeliveryListDto[] }).lists);
+          setLists(
+            (body as { lists: DeliveryListDto[] }).lists.filter((list) => !deletingRef.current.has(list.id))
+          );
         })
         .catch(() => undefined);
     }, 4000);
@@ -57,6 +61,29 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
       window.clearInterval(timer);
     };
   }, [date]);
+
+  async function removeList(list: DeliveryListDto) {
+    const confirmed = window.confirm(
+      `Apagar a lista "${list.name}"? Os pedidos continuam no sistema.`
+    );
+    if (!confirmed || deletingRef.current.has(list.id)) return;
+
+    deletingRef.current.add(list.id);
+    setDeletingId(list.id);
+    setLists((current) => current.filter((item) => item.id !== list.id));
+    setError("");
+    try {
+      const response = await fetch(`/api/delivery-lists/${list.id}`, { method: "DELETE" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Erro ao apagar a lista");
+    } catch (reason: unknown) {
+      deletingRef.current.delete(list.id);
+      setError(reason instanceof Error ? reason.message : "Erro ao apagar a lista");
+      setLists((current) => (current.some((item) => item.id === list.id) ? current : [list, ...current]));
+    } finally {
+      setDeletingId("");
+    }
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -125,6 +152,16 @@ export function ListsHome({ initialDate }: { initialDate: string }) {
                     <Printer className="mr-2 h-4 w-4" />
                     Imprimir
                   </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-11 shrink-0 text-destructive hover:text-destructive lg:h-10 lg:w-10"
+                  aria-label={`Apagar ${list.name}`}
+                  disabled={deletingId === list.id}
+                  onClick={() => void removeList(list)}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>

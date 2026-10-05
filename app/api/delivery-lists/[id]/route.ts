@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireInternalUser } from "@/lib/requireInternalUser";
 import {
   DeliveryListError,
+  deleteDeliveryList,
   getDeliveryList,
   updateDeliveryList,
 } from "@/lib/services/deliveryListService";
@@ -27,6 +28,22 @@ export async function GET(
     return NextResponse.json(list);
   } catch (error) {
     return errorResponse(error, "Erro ao buscar lista");
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await requireInternalUser();
+    if (auth.error) return auth.error;
+
+    const { id } = await params;
+    await deleteDeliveryList(id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return errorResponse(error, "Erro ao apagar lista");
   }
 }
 
