@@ -58,7 +58,7 @@ Acesse [http://localhost:3000](http://localhost:3000).
 - **Dashboard:** vendas do dia, pedidos, estoque baixo, produtos mais vendidos
 - **Produtos:** CRUD, importação CSV, exportação CSV
 - **Pedidos:** novo pedido com carrinho, finalização com baixa automática de estoque
-- **Impressão:** cupom em HTML com `window.print()`
+- **Impressão:** cupom térmico via QZ Tray e ESC/POS
 - **Estoque:** entradas, ajustes, histórico de movimentações
 - **Clientes:** cadastro de clientes
 - **Exportação CSV:** produtos, pedidos, movimentações

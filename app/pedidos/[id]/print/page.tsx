@@ -166,14 +166,9 @@ export default function PrintPage() {
           </select>
         </label>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={handleListPrinters} disabled={listing || printing}>
-            {listing ? "Buscando..." : "Buscar impressoras"}
-          </Button>
-          <Button variant="ghost" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => window.print()}>
-            Imprimir pelo navegador
-          </Button>
-        </div>
+        <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={handleListPrinters} disabled={listing || printing}>
+          {listing ? "Buscando..." : "Buscar impressoras"}
+        </Button>
 
         {message ? (
           <p role="status" className={messageClass}>
